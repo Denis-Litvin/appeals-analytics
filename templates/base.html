@@ -1,0 +1,46 @@
+{% load static %}<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Обращения{% endblock %} | Анализ обращений</title>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+{% if user.is_authenticated %}
+  {% with current=request.resolver_match.view_name %}
+  <header class="topbar">
+    <a class="brand" href="{% url 'home' %}">Анализ обращений</a>
+    <nav class="menu">
+      <a href="{% url 'appeals:list' %}"{% if current == 'appeals:list' %} class="active"{% endif %}>Обращения</a>
+      <a href="{% url 'analytics:stats' %}"{% if current == 'analytics:stats' %} class="active"{% endif %}>Статистика</a>
+      <a href="{% url 'analytics:problems' %}"{% if current == 'analytics:problems' %} class="active"{% endif %}>Рейтинг проблем</a>
+      <a href="{% url 'analytics:compare' %}"{% if current == 'analytics:compare' %} class="active"{% endif %}>Сравнение</a>
+      <a href="{% url 'analytics:dashboard' %}"{% if current == 'analytics:dashboard' %} class="active"{% endif %}>Дашборд</a>
+      <a href="{% url 'analytics:reports' %}"{% if current == 'analytics:reports' %} class="active"{% endif %}>Отчёты</a>
+      <a href="{% url 'analytics:alerts' %}"{% if current == 'analytics:alerts' %} class="active"{% endif %}>Уведомления</a>
+    </nav>
+    <div class="account">
+      <span class="muted">{{ user.get_full_name|default:user.username }}</span>
+      {% if user.is_staff %}<a href="{% url 'admin:index' %}">Справочники</a>{% endif %}
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="link">Выйти</button>
+      </form>
+    </div>
+  </header>
+  {% endwith %}
+{% endif %}
+
+<main class="page">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="notice notice-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+  {% block content %}{% endblock %}
+</main>
+{% block scripts %}{% endblock %}
+</body>
+</html>
