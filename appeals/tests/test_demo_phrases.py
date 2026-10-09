@@ -58,6 +58,10 @@ class BankStructureTests(SimpleTestCase):
         low, high = dp.NUMBERS["order"]
         self.assertTrue(low <= int(text.split()[1]) <= high)
 
+    def test_numbers_agree_with_words(self):
+        self.assertEqual(dp.agree("уже 14 дня, 21 дней, 1 часа, 3 раз, 5 рубля"), "уже 14 дней, 21 день, 1 час, 3 раза, 5 рублей")
+        self.assertEqual(dp.agree("заказ 1234567 на 2 дня"), "заказ 1234567 на 2 дня")
+
     def test_names(self):
         self.assertLessEqual(dp.FEMALE_NAMES, set(dp.FIRST_NAMES))
         self.assertTrue(all(len(pair) == 2 for pair in dp.LAST_NAMES))

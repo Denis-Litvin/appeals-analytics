@@ -54,6 +54,8 @@ DEMO_PASSWORD = "demo12345"
 # username, имя, фамилия, роль, доступ в админку
 DEMO_USERS = [
     ("operator", "Ольга", "Смирнова", OPERATOR, False),
+    ("operator2", "Дмитрий", "Орлов", OPERATOR, False),
+    ("operator3", "Мария", "Ковалева", OPERATOR, False),
     ("analyst", "Артём", "Козлов", ANALYST, False),
     ("admin", "Игорь", "Белов", ADMIN, True),
 ]

@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -77,6 +78,10 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+# В тестах стойкое хеширование паролей только замедляет прогон: демо-учётки создаются в десятках тестов.
+if "test" in sys.argv[1:2]:
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
 LANGUAGE_CODE = "ru"
 TIME_ZONE = "Europe/Moscow"

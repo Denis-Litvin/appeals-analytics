@@ -33,7 +33,8 @@ class SetupRolesTests(TestCase):
         call_command("setup_roles", "--demo-users", stdout=StringIO())
         call_command("setup_roles", "--demo-users", stdout=StringIO())
         self.assertEqual(Group.objects.count(), 3)
-        self.assertEqual(User.objects.count(), 3)
+        self.assertEqual(User.objects.count(), 5)
+        self.assertEqual(User.objects.filter(groups__name=OPERATOR).count(), 3)
         self.assertEqual(Group.objects.get(name=ADMIN).permissions.count(), len(ADMIN_PERMS))
 
     def test_demo_users_get_their_groups(self):

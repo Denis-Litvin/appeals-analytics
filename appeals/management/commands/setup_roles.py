@@ -7,7 +7,7 @@ class Command(BaseCommand):
     help = "Создаёт группы Оператор, Аналитик, Администратор с их правами. С --demo-users ещё и демо-учётки."
 
     def add_arguments(self, parser):
-        parser.add_argument("--demo-users", action="store_true", help="создать учётки operator, analyst, admin")
+        parser.add_argument("--demo-users", action="store_true", help="создать демо-учётки трёх операторов, аналитика и администратора")
 
     def handle(self, *args, **options):
         groups = setup_roles()

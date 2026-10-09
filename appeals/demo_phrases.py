@@ -8,6 +8,29 @@ import re
 
 PLACEHOLDER_RE = re.compile(r"\{(\w+)\}")
 
+# Формы слова для 1, 2 и 5: «1 день», «2 дня», «5 дней».
+PLURALS = {
+    "день": ("день", "дня", "дней"), "дня": ("день", "дня", "дней"), "дней": ("день", "дня", "дней"),
+    "час": ("час", "часа", "часов"), "часа": ("час", "часа", "часов"), "часов": ("час", "часа", "часов"),
+    "раз": ("раз", "раза", "раз"), "раза": ("раз", "раза", "раз"),
+    "рубль": ("рубль", "рубля", "рублей"), "рубля": ("рубль", "рубля", "рублей"),
+    "рублей": ("рубль", "рубля", "рублей"),
+}
+NUMBER_WORD_RE = re.compile(r"\b(\d+) (" + "|".join(PLURALS) + r")\b")
+
+
+def plural(n, forms):
+    if n % 10 == 1 and n % 100 != 11:
+        return forms[0]
+    if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14:
+        return forms[1]
+    return forms[2]
+
+
+def agree(text):
+    """Согласует слово с числом перед ним: «14 дня» превращается в «14 дней»."""
+    return NUMBER_WORD_RE.sub(lambda m: f"{m.group(1)} {plural(int(m.group(1)), PLURALS[m.group(2)])}", text)
+
 
 def fill(template, rnd, **fixed):
     """Подставляет значения в шаблон. rnd: random.Random, fixed: готовые значения, например core."""
@@ -20,7 +43,7 @@ def fill(template, rnd, **fixed):
             return str(rnd.randint(*NUMBERS[name]))
         return rnd.choice(CHOICES[name])
 
-    return PLACEHOLDER_RE.sub(value, template)
+    return agree(PLACEHOLDER_RE.sub(value, template))
 
 
 # Подстановки, которые генератор заполняет случайными числами в указанных пределах.
