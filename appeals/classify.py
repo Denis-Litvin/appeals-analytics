@@ -3,12 +3,13 @@
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from .text import normalize, phrase_stems, stems
+from .text import normalize, phrase_stems, phrase_words, stem, tokens
 
 MIN_SCORE = 2  # меньше двух баллов: одно слабое слово, категорию не ставим
 MIN_LEAD = 1.5  # победитель должен опережать вторую категорию в полтора раза
 WINDOW_EXTRA = 2  # на сколько слов многословная фраза может растянуться в тексте
-FUZZY_MIN_LEN = 5  # опечатки допускаются только в основах от пяти букв
+WORD_FUZZY_MIN_LEN = 5  # опечатка ищется в словах от пяти букв: «курер» вместо «курьер»
+STEM_FUZZY_MIN_LEN = 6  # разные формы одного слова сравниваются по основам от шести букв: «треснут» и «треснул»
 PREFIX_MIN_LEN = 4  # основа из текста может быть длиннее основы фразы, если у фразы от четырёх букв
 PREFIX_EXTRA = 2  # и не больше чем на две буквы: «разбит» стеммер режет до «разб», «разбитая» до «разбит»
 NEG = "не"
@@ -32,6 +33,28 @@ def one_edit(a, b):
     if a[i + 1 :] == b[i + 1 :]:
         return True
     return i + 1 < len(a) and a[i] == b[i + 1] and a[i + 1] == b[i] and a[i + 2 :] == b[i + 2 :]
+
+
+def _index(words, min_len):
+    """Вариант слова без одной буквы -> исходные слова. Так близкое слово находится без перебора словаря."""
+    index = defaultdict(set)
+    for w in words:
+        if len(w) >= min_len:
+            index[w].add(w)
+            for v in _deletes(w):
+                index[v].add(w)
+    return index
+
+
+def _close(index, word, same_length=False):
+    """Слова из индекса на расстоянии одной правки. Первая буква должна совпасть:
+    «позвонил» и «дозвониться» разные слова, а не опечатка."""
+    found = set()
+    for v in _deletes(word) | {word}:
+        for w in index.get(v, ()):
+            if w[0] == word[0] and (not same_length or len(w) == len(word)) and one_edit(word, w):
+                found.add(w)
+    return found
 
 
 def _phrase_parts(rule_stems):
@@ -75,13 +98,9 @@ class Classifier:
     def __init__(self, rules):
         self.rules = rules
         self.vocab = {s for rule in rules for s in rule.stems}
-        # Вариант основы без одной буквы -> исходные основы. Так опечатка находится без перебора словаря.
-        self.variants = defaultdict(set)
-        for s in self.vocab:
-            if len(s) >= FUZZY_MIN_LEN:
-                self.variants[s].add(s)
-                for v in _deletes(s):
-                    self.variants[v].add(s)
+        self.word_stem = {w: stem(w) for rule in rules for w in phrase_words(rule.phrase)}
+        self.word_index = _index(self.word_stem, WORD_FUZZY_MIN_LEN)
+        self.stem_index = _index(self.vocab, STEM_FUZZY_MIN_LEN)
 
     @classmethod
     def from_db(cls):
@@ -95,27 +114,22 @@ class Classifier:
                 rules.append(Rule(r.reason_id, r.reason.category_id, r.phrase, r.weight, rule_stems))
         return cls(rules)
 
-    def _known(self, word):
+    def _known(self, word, word_stem):
         """Какие основы словаря может означать слово текста."""
         found = set()
-        # Само слово и его начало без одной-двух последних букв: стеммер режет формы по-разному,
-        # а опечатка в окончании мешает ему отрезать окончание вовсе («опаздывет»).
+        # Опечатку ищем в самом слове: у слова с опечаткой стеммер часто режет окончание не так.
+        if len(word) >= WORD_FUZZY_MIN_LEN:
+            found |= {self.word_stem[w] for w in _close(self.word_index, word)}
+        # Основа и её начало без одной-двух последних букв: стеммер режет формы одного слова по-разному.
         for k in range(PREFIX_EXTRA + 1):
-            part = word[: len(word) - k]
+            part = word_stem[: len(word_stem) - k]
             if k and len(part) < PREFIX_MIN_LEN:
                 break
             if part in self.vocab:
                 found.add(part)
-            if len(part) >= FUZZY_MIN_LEN:
-                # Общий вариант без одной буквы бывает и у слов на расстоянии двух правок, их отсекаем.
-                # Первая буква должна совпасть: «позвонил» и «дозвониться» разные слова, а не опечатка.
-                # У укороченного слова допускаем только замену и перестановку, иначе «описа» сойдётся с «отписа».
-                for v in _deletes(part) | {part}:
-                    found |= {
-                        s
-                        for s in self.variants.get(v, ())
-                        if s[0] == part[0] and (k == 0 or len(s) == len(part)) and one_edit(part, s)
-                    }
+            if len(part) >= STEM_FUZZY_MIN_LEN:
+                # У укороченной основы допускаем только замену и перестановку, иначе «описа» сойдётся с «отписа».
+                found |= _close(self.stem_index, part, same_length=k > 0)
         return found
 
     @staticmethod
@@ -141,8 +155,8 @@ class Classifier:
 
     def classify(self, text):
         positions = defaultdict(list)
-        for i, word in enumerate(stems(text)):
-            for s in self._known(word):
+        for i, word in enumerate(tokens(text)):
+            for s in self._known(word, stem(word)):
                 positions[s].append(i)
 
         reason_score = defaultdict(int)

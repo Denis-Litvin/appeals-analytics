@@ -41,6 +41,8 @@ class MatchingTests(SimpleTestCase):
             (7, 50, "пункт выдачи", 3),
             (8, 60, "нагрубил", 3),
             (9, 70, "отписаться", 3),
+            (10, 80, "забанили", 3),
+            (11, 90, "списали дважды", 3),
         )
 
     def found(self, text):
@@ -69,6 +71,11 @@ class MatchingTests(SimpleTestCase):
     def test_shortened_word_needs_same_length(self):
         # «описанию» без последней буквы отличается от «отписаться» одной вставкой, это не опечатка.
         self.assertNotIn("отписаться", self.found("не соответствует описанию"))
+
+    def test_short_stems_need_word_level_typo(self):
+        # Основы «заран» и «забан» различаются одной буквой, но слова «заранее» и «забанили» далеки.
+        self.assertNotIn("забанили", self.found("Спасибо заранее!"))
+        self.assertIn("списали дважды", self.found("списли дважды"))
 
     def test_short_form_of_participle(self):
         self.assertIn("разбит", self.found("пришла разбитая ваза"))

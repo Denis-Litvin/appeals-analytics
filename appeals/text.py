@@ -42,8 +42,11 @@ def normalize(text):
     return " ".join(stems(text))
 
 
-def phrase_stems(phrase):
-    """Основы ключевой фразы без служебных слов. Если фраза состоит только из них, они остаются."""
+def phrase_words(phrase):
+    """Слова ключевой фразы без служебных. Если фраза состоит только из них, они остаются."""
     words = tokens(phrase)
-    meaningful = [w for w in words if w not in STOP_WORDS] or words
-    return [stem(w) for w in meaningful]
+    return [w for w in words if w not in STOP_WORDS] or words
+
+
+def phrase_stems(phrase):
+    return [stem(w) for w in phrase_words(phrase)]
