@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from .classify import recategorize
 from .models import Appeal, Category, KeywordRule, Reason, Tag
 
 
@@ -68,6 +69,16 @@ class AppealAdmin(admin.ModelAdmin):
         ("Служебное", {"fields": ["text_norm", "updated_at"], "classes": ["collapse"]}),
     ]
 
+    actions = ["recategorize_selected"]
+
     @admin.display(description="текст")
     def short_text(self, obj):
         return obj.subject or obj.text[:80]
+
+    @admin.action(description="Пересчитать автокатегорию", permissions=["recategorize"])
+    def recategorize_selected(self, request, queryset):
+        changed = recategorize(queryset)
+        self.message_user(request, f"Категория изменилась у {changed} обращений. Ручные категории не тронуты.")
+
+    def has_recategorize_permission(self, request):
+        return request.user.has_perm("appeals.manage_dictionary")

@@ -5,6 +5,9 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from .classify import Classifier
+from .text import normalize
+
 color_validator = RegexValidator(r"^#[0-9a-fA-F]{6}$", "Цвет в формате #RRGGBB.")
 
 
@@ -162,8 +165,37 @@ class Appeal(models.Model):
             ),
         ]
 
+    # Текст на момент загрузки из базы, по нему save() понимает, что текст изменился.
+    _saved_text = None
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        instance._saved_text = (instance.__dict__.get("subject"), instance.__dict__.get("text"))
+        return instance
+
     def __str__(self):
         return f"#{self.pk} {self.subject or self.text[:60]}"
+
+    @property
+    def full_text(self):
+        return f"{self.subject}\n{self.text}" if self.subject else self.text
+
+    def apply_classification(self, result):
+        self.category_id = result.category_id
+        self.reason_id = result.reason_id
+        self.category_source = self.Source.AUTO if result.category_id else self.Source.NONE
+        self.category_score = result.score
+        self.category_matches = result.matches
+
+    def save(self, *args, **kwargs):
+        # Пересчитываем только новый или изменённый текст, чтобы смена статуса не меняла категорию.
+        if (self.subject, self.text) != self._saved_text:
+            self.text_norm = normalize(self.full_text)
+            if self.category_source != self.Source.MANUAL:
+                self.apply_classification(Classifier.from_db().classify(self.full_text))
+        super().save(*args, **kwargs)
+        self._saved_text = (self.subject, self.text)
 
     def clean(self):
         if self.reason_id and self.category_id and self.reason.category_id != self.category_id:

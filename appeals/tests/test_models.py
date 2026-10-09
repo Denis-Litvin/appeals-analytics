@@ -28,17 +28,22 @@ class AppealModelTests(TestCase):
         self.assertEqual(set(appeal.tags.values_list("name", flat=True)), {"iOS", "VIP"})
         self.assertEqual(list(ios.appeals.all()), [appeal])
 
+    # save() сам выставляет автокатегорию, поэтому ограничения базы проверяем через bulk_create:
+    # он пишет поля как есть, так же вставляет данные генератор.
+    def insert(self, **fields):
+        Appeal.objects.bulk_create([Appeal(text="текст", **fields)])
+
     def test_reason_requires_category_in_db(self):
         with self.assertRaises(IntegrityError), transaction.atomic():
-            Appeal.objects.create(text="текст", reason=self.card_declined, category_source="manual")
+            self.insert(reason=self.card_declined, category_source=Appeal.Source.MANUAL)
 
     def test_auto_source_requires_category(self):
         with self.assertRaises(IntegrityError), transaction.atomic():
-            Appeal.objects.create(text="текст", category_source=Appeal.Source.AUTO)
+            self.insert(category_source=Appeal.Source.AUTO)
 
     def test_none_source_forbids_category(self):
         with self.assertRaises(IntegrityError), transaction.atomic():
-            Appeal.objects.create(text="текст", category=self.payment, category_source=Appeal.Source.NONE)
+            self.insert(category=self.payment, category_source=Appeal.Source.NONE)
 
     def test_manual_without_category_allowed(self):
         # Оператор может вручную решить, что категории нет, и пересчёт это не тронет.
@@ -57,9 +62,7 @@ class AppealModelTests(TestCase):
         self.assertIn("reason", ctx.exception.message_dict)
 
     def test_category_with_appeals_cannot_be_deleted(self):
-        Appeal.objects.create(
-            text="текст", category=self.payment, reason=self.card_declined, category_source=Appeal.Source.AUTO
-        )
+        self.insert(category=self.payment, reason=self.card_declined, category_source=Appeal.Source.AUTO)
         with self.assertRaises(ProtectedError):
             self.card_declined.delete()
 
