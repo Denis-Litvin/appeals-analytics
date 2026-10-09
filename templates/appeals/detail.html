@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Обращение {{ appeal.pk }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Обращение № {{ appeal.pk }}</h1>
+  <div class="actions">
+    <a class="btn" href="{% url 'appeals:list' %}">К списку</a>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div>
+    <div class="panel">
+      {% if appeal.subject %}<h2>{{ appeal.subject }}</h2>{% endif %}
+      <div class="appeal-text">{{ text_html }}</div>
+    </div>
+
+    <div class="panel">
+      <h2>Почему такая категория</h2>
+      {% if appeal.category_source == "manual" %}
+        <p>Категорию поставил оператор вручную, пересчёт по словарю её не меняет.</p>
+      {% elif appeal.category %}
+        <p>Категория определена автоматически, баллов: {{ appeal.category_score|floatformat:"-1" }}.
+          Найденные слова выделены в тексте.</p>
+      {% else %}
+        <p>Категория не определена: найденных фраз недостаточно или у двух категорий близкие баллы.</p>
+      {% endif %}
+      {% if matches %}
+      <table class="data">
+        <thead><tr><th>Фраза</th><th>Причина</th><th>Категория</th><th class="num">Вес</th></tr></thead>
+        <tbody>
+          {% for m in matches %}
+          <tr>
+            <td>{{ m.phrase }}</td>
+            <td>{{ m.reason_obj.name|default:"удалена из справочника" }}</td>
+            <td>{{ m.reason_obj.category.name|default:"" }}</td>
+            <td class="num">{{ m.weight }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <p class="muted">Ключевых фраз в тексте не найдено.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <dl class="details">
+        <dt>Поступило</dt><dd>{{ appeal.created_at|date:"d.m.Y H:i" }}</dd>
+        <dt>Канал</dt><dd>{{ appeal.get_channel_display }}</dd>
+        <dt>Автор</dt><dd>{{ author_name|default:"не указан" }}</dd>
+        <dt>Email</dt><dd>{{ author_email|default:"не указан" }}</dd>
+        <dt>Статус</dt><dd><span class="badge badge-{{ appeal.status }}">{{ appeal.get_status_display }}</span></dd>
+        <dt>Исполнитель</dt><dd>{{ appeal.assignee.get_full_name|default:"не назначен" }}</dd>
+        <dt>Решено</dt>
+        <dd>
+          {% if appeal.resolved_at %}
+            {{ appeal.resolved_at|date:"d.m.Y H:i" }}, через {{ appeal.created_at|timesince:appeal.resolved_at }}
+          {% else %}
+            нет
+          {% endif %}
+        </dd>
+        <dt>Категория</dt>
+        <dd>
+          {% if appeal.category %}
+            <span class="dot" style="background: {{ appeal.category.color }}"></span>{{ appeal.category.name }}
+          {% else %}
+            <span class="badge badge-none">без категории</span>
+          {% endif %}
+        </dd>
+        <dt>Причина</dt><dd>{{ appeal.reason.name|default:"не определена" }}</dd>
+        <dt>Источник категории</dt><dd>{{ appeal.get_category_source_display }}</dd>
+        <dt>Теги</dt>
+        <dd>{% for tag in appeal.tags.all %}<span class="tag">{{ tag.name }}</span>{% empty %}нет{% endfor %}</dd>
+        <dt>Изменено</dt><dd>{{ appeal.updated_at|date:"d.m.Y H:i" }}</dd>
+      </dl>
+    </div>
+
+    {% if appeal.reason %}
+    <div class="panel">
+      <h2>Похожие обращения</h2>
+      <p class="muted">Та же причина, {{ similar_days }} дней до и после этого обращения.</p>
+      {% if similar %}
+      <table class="data">
+        <tbody>
+          {% for other in similar %}
+          <tr>
+            <td class="nowrap"><a href="{% url 'appeals:detail' other.pk %}">{{ other.pk }}</a></td>
+            <td class="nowrap">{{ other.created_at|date:"d.m.Y H:i" }}</td>
+            <td class="text">{{ other.text|truncatechars:90 }}</td>
+            <td><span class="badge badge-{{ other.status }}">{{ other.get_status_display }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <p>Других обращений с этой причиной за это время нет.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

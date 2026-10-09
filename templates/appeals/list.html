@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Обращения{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Обращения</h1>
+  <div class="actions">
+    <span class="muted">Найдено: {{ page.paginator.count }}</span>
+    {% if order == "new" %}
+      <a class="btn btn-small" href="{% querystring order='old' page=None %}">Сначала старые</a>
+    {% else %}
+      <a class="btn btn-small" href="{% querystring order='new' page=None %}">Сначала новые</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if page.object_list %}
+<div class="table-wrap">
+  <table class="data">
+    <thead>
+      <tr>
+        <th>№</th>
+        <th>Поступило</th>
+        <th>Канал</th>
+        <th>Текст</th>
+        <th>Категория</th>
+        <th>Статус</th>
+        <th>Теги</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for appeal in page.object_list %}
+      <tr>
+        <td class="nowrap"><a href="{% url 'appeals:detail' appeal.pk %}">{{ appeal.pk }}</a></td>
+        <td class="nowrap">{{ appeal.created_at|date:"d.m.Y H:i" }}</td>
+        <td class="nowrap">{{ appeal.get_channel_display }}</td>
+        <td class="text">
+          <a href="{% url 'appeals:detail' appeal.pk %}">
+            {% if appeal.subject %}<strong>{{ appeal.subject }}</strong> {% endif %}{{ appeal.text|truncatechars:140 }}
+          </a>
+        </td>
+        <td>
+          {% if appeal.category %}
+            <span class="dot" style="background: {{ appeal.category.color }}"></span>{{ appeal.category.name }}
+            {% if appeal.reason %}<div class="muted">{{ appeal.reason.name }}</div>{% endif %}
+          {% else %}
+            <span class="badge badge-none">без категории</span>
+          {% endif %}
+        </td>
+        <td><span class="badge badge-{{ appeal.status }}">{{ appeal.get_status_display }}</span></td>
+        <td>{% for tag in appeal.tags.all %}<span class="tag">{{ tag.name }}</span>{% endfor %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if page.has_other_pages %}
+<nav class="pager">
+  {% if page.has_previous %}
+    <a class="btn btn-small" href="{% querystring page=1 %}">Первая</a>
+    <a class="btn btn-small" href="{% querystring page=page.previous_page_number %}">Назад</a>
+  {% endif %}
+  <span class="current">Страница {{ page.number }} из {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}
+    <a class="btn btn-small" href="{% querystring page=page.next_page_number %}">Дальше</a>
+    <a class="btn btn-small" href="{% querystring page=page.paginator.num_pages %}">Последняя</a>
+  {% endif %}
+</nav>
+{% endif %}
+
+{% else %}
+<div class="empty">Обращений нет.</div>
+{% endif %}
+{% endblock %}
