@@ -6,6 +6,15 @@
 <div class="page-head">
   <h1>Обращение № {{ appeal.pk }}</h1>
   <div class="actions">
+    {% if perms.appeals.change_appeal %}
+      {% if appeal.category_source == "manual" %}
+        <form method="post" action="{% url 'appeals:auto_category' appeal.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn">Вернуть автоопределение</button>
+        </form>
+      {% endif %}
+      <a class="btn btn-primary" href="{% url 'appeals:edit' appeal.pk %}">Изменить</a>
+    {% endif %}
     <a class="btn" href="{% url 'appeals:list' %}">К списку</a>
   </div>
 </div>

@@ -1,15 +1,22 @@
 import re
 from datetime import timedelta
 
+from django.contrib import messages
 from django.contrib.auth.decorators import permission_required
 from django.core.paginator import Paginator
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
+from django.views.decorators.http import require_POST
 
+from .classify import Classifier
+from .forms import AppealCreateForm, AppealEditForm
 from .models import Appeal, Reason
 from .roles import author_for
 from .text import phrase_stems, stem
+
+CLOSED_STATUSES = (Appeal.Status.RESOLVED, Appeal.Status.CLOSED)
 
 PAGE_SIZE = 50
 SIMILAR_DAYS = 7
@@ -88,3 +95,52 @@ def appeal_detail(request, pk):
             "similar_days": SIMILAR_DAYS,
         },
     )
+
+
+def category_label(appeal):
+    if not appeal.category_id:
+        return "без категории"
+    return f"{appeal.category}, {appeal.reason}" if appeal.reason_id else str(appeal.category)
+
+
+@permission_required("appeals.add_appeal", raise_exception=True)
+def appeal_create(request):
+    form = AppealCreateForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        appeal = form.save()
+        messages.success(request, f"Обращение № {appeal.pk} создано. Категория: {category_label(appeal)}.")
+        return redirect("appeals:detail", appeal.pk)
+    return render(request, "appeals/form.html", {"form": form, "title": "Новое обращение"})
+
+
+@permission_required("appeals.change_appeal", raise_exception=True)
+def appeal_edit(request, pk):
+    appeal = get_object_or_404(Appeal, pk=pk)
+    form = AppealEditForm(request.POST or None, instance=appeal)
+    if request.method == "POST" and form.is_valid():
+        appeal = form.save(commit=False)
+        if form.category_changed:
+            appeal.category_source = Appeal.Source.MANUAL
+            appeal.category_score = 0
+        if appeal.status in CLOSED_STATUSES and not appeal.resolved_at:
+            appeal.resolved_at = timezone.now()
+        elif appeal.status not in CLOSED_STATUSES:
+            appeal.resolved_at = None
+        if appeal.status != Appeal.Status.NEW and not appeal.assignee_id:
+            appeal.assignee = request.user
+        appeal.save()
+        form.save_m2m()
+        messages.success(request, "Изменения сохранены.")
+        return redirect("appeals:detail", appeal.pk)
+    return render(request, "appeals/form.html", {"form": form, "appeal": appeal, "title": f"Обращение № {appeal.pk}"})
+
+
+@require_POST
+@permission_required("appeals.change_appeal", raise_exception=True)
+def appeal_auto_category(request, pk):
+    """Снимает ручную категорию и возвращает определение по словарю."""
+    appeal = get_object_or_404(Appeal, pk=pk)
+    appeal.apply_classification(Classifier.from_db().classify(appeal.full_text))
+    appeal.save()
+    messages.success(request, f"Категория определена по словарю: {category_label(appeal)}.")
+    return redirect("appeals:detail", appeal.pk)

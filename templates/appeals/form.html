@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head %}
+<style>
+  .checks ul, .checks div { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .3rem 1rem; }
+  .checks label { font-weight: normal; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>{{ title }}</h1>
+  <div class="actions">
+    {% if appeal %}
+      <a class="btn" href="{% url 'appeals:detail' appeal.pk %}">Отмена</a>
+    {% else %}
+      <a class="btn" href="{% url 'appeals:list' %}">Отмена</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if appeal %}
+<div class="panel">
+  <div class="muted">{{ appeal.created_at|date:"d.m.Y H:i" }}, {{ appeal.get_channel_display }}</div>
+  {% if appeal.subject %}<h3>{{ appeal.subject }}</h3>{% endif %}
+  <div class="appeal-text">{{ appeal.text }}</div>
+</div>
+{% endif %}
+
+<form method="post" class="panel form">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="notice notice-error">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+  {% for field in form %}
+    <div{% if field.name == "tags" %} class="checks"{% endif %}>
+      <label for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+      {{ field }}
+      {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+      {{ field.errors }}
+    </div>
+  {% endfor %}
+  {% if appeal %}
+    <div class="help">Если поменять категорию или причину, она станет ручной и пересчёт по словарю её не тронет.</div>
+  {% else %}
+    <div class="help">Категория определится автоматически после сохранения, её можно будет поправить.</div>
+  {% endif %}
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+{% if appeal %}
+<script>
+  // В списке причин оставляем только причины выбранной категории.
+  (function () {
+    var category = document.getElementById("id_category");
+    var reason = document.getElementById("id_reason");
+    function filter() {
+      Array.prototype.forEach.call(reason.options, function (option) {
+        var own = !option.value || !category.value || option.dataset.category === category.value;
+        option.hidden = !own;
+        if (!own && option.selected) { reason.value = ""; }
+      });
+    }
+    category.addEventListener("change", filter);
+    filter();
+  })();
+</script>
+{% endif %}
+{% endblock %}

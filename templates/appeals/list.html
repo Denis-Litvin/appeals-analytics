@@ -7,6 +7,9 @@
   <h1>Обращения</h1>
   <div class="actions">
     <span class="muted">Найдено: {{ page.paginator.count }}</span>
+    {% if perms.appeals.add_appeal %}
+      <a class="btn btn-small btn-primary" href="{% url 'appeals:create' %}">Новое обращение</a>
+    {% endif %}
     {% if order == "new" %}
       <a class="btn btn-small" href="{% querystring order='old' page=None %}">Сначала старые</a>
     {% else %}
