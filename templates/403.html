@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Нет доступа{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Нет доступа</h1>
+</div>
+<div class="empty">
+  У вашей роли нет прав на этот раздел. Если доступ нужен для работы, обратитесь к администратору.
+  {% if perms.appeals.view_appeal %}<p><a href="{% url 'appeals:list' %}">Перейти к обращениям</a></p>{% endif %}
+</div>
+{% endblock %}

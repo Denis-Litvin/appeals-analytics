@@ -134,6 +134,13 @@ class Appeal(models.Model):
         verbose_name = "обращение"
         verbose_name_plural = "обращения"
         ordering = ["-created_at", "-id"]
+        # Права ролей (Д10), раздаются группам командой setup_roles.
+        permissions = [
+            ("view_personal_data", "Видеть имя и email автора"),
+            ("view_analytics", "Смотреть статистику, дашборд и уведомления"),
+            ("export_reports", "Выгружать отчёты и списки"),
+            ("manage_dictionary", "Вести справочники и пересчитывать категории"),
+        ]
         indexes = [
             models.Index(fields=["created_at"], name="appeal_created_idx"),
             models.Index(fields=["category", "created_at"], name="appeal_category_created_idx"),
