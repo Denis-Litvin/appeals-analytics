@@ -6,12 +6,13 @@ from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from . import charts, stats
+from . import charts, export, stats
 from .forms import compare_form, period_form
 from .models import SpikeAlert
 from .reports import build as build_report
 
 analytics_required = permission_required("appeals.view_analytics", raise_exception=True)
+export_required = permission_required("appeals.export_reports", raise_exception=True)
 
 
 @analytics_required
@@ -122,10 +123,31 @@ def plotly_js(request, version):
 def reports(request):
     form = period_form(request.GET)
     report = build_report(form)
-    context = {"form": form, "report": report, "start": report["start"], "end": report["end"]}
+    context = {
+        "form": form,
+        "report": report,
+        "start": report["start"],
+        "end": report["end"],
+        "export_sections": export.SECTIONS,
+    }
     if "charts" in report:
         context["charts"] = report["charts"]
     return render(request, "analytics/report.html", context)
+
+
+@analytics_required
+@export_required
+def report_export(request):
+    """Отчёт в XLSX целиком или один раздел в CSV, с теми же периодом и фильтрами, что на странице."""
+    form = period_form(request.GET)
+    report = build_report(form)
+    name = f"report_{report['start']:%Y-%m-%d}_{report['end']:%Y-%m-%d}"
+    if request.GET.get("format") == "csv":
+        section = request.GET.get("section", "summary")
+        if section not in export.SECTIONS:
+            raise Http404
+        return export.download(export.report_csv(report, section), f"{name}_{section}.csv")
+    return export.download(export.report_xlsx(report, form), f"{name}.xlsx")
 
 
 @analytics_required

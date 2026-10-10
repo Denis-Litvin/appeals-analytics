@@ -80,7 +80,10 @@ def period_alerts(form, start, end):
 
 
 def build(form):
-    """Все данные отчёта. Если за период нет обращений, остаётся только сводка."""
+    """Все данные отчёта. Если за период нет обращений, остаётся только сводка.
+
+    problems: весь рейтинг причин для выгрузки, reasons: его начало для страницы.
+    """
     start, end = form.period
     prev_start, prev_end = stats.previous_period(start, end)
     current = stats.load_frame(form.appeals())
@@ -104,10 +107,13 @@ def build(form):
         row["share"] = row["current_count"] / now.total
     alerts = period_alerts(form, start, end)
     base = charts.link_base(form)
+    problems = stats.problems(current, previous)
     report.update(
         categories=categories,
         totals=totals,
-        reasons=stats.problems(current, previous)[:TOP_REASONS],
+        problems=problems,
+        reasons=problems[:TOP_REASONS],
+        daily=stats.daily_table(current, start, end),
         alerts=alerts,
         notable_share=stats.NOTABLE_SHARE,
         notable_count=stats.NOTABLE_COUNT,

@@ -11,6 +11,7 @@ urlpatterns = [
     path("dashboard/", views.dashboard, name="dashboard"),
     path("assets/plotly-<str:version>.min.js", views.plotly_js, name="plotly_js"),
     path("reports/", views.reports, name="reports"),
+    path("reports/export/", views.report_export, name="report_export"),
     path("alerts/", views.alerts, name="alerts"),
     path("alerts/read/", views.alerts_read, name="alerts_read_all"),
     path("alerts/<int:pk>/read/", views.alerts_read, name="alerts_read"),

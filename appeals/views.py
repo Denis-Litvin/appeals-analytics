@@ -10,6 +10,7 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST
 
+from analytics.export import appeals_csv, appeals_xlsx, download
 from analytics.spikes import check_appeal
 
 from .classify import Classifier
@@ -28,11 +29,14 @@ ORDERINGS = {"new": ("-created_at", "-id"), "old": ("created_at", "id")}
 WORD_RE = re.compile(r"[А-Яа-яЁёA-Za-z0-9]+")
 
 
+def ordering(params):
+    order = params.get("order", "new")
+    return order if order in ORDERINGS else "new"
+
+
 @permission_required("appeals.view_appeal", raise_exception=True)
 def appeal_list(request):
-    order = request.GET.get("order", "new")
-    if order not in ORDERINGS:
-        order = "new"
+    order = ordering(request.GET)
     appeals, form = filter_appeals(request.GET)
     appeals = (
         appeals.select_related("category", "reason")
@@ -42,6 +46,18 @@ def appeal_list(request):
     )
     page = Paginator(appeals, PAGE_SIZE).get_page(request.GET.get("page"))
     return render(request, "appeals/list.html", {"page": page, "order": order, "form": form})
+
+
+@permission_required("appeals.view_appeal", raise_exception=True)
+@permission_required("appeals.export_reports", raise_exception=True)
+def appeal_export(request):
+    """Отфильтрованный список целиком, с теми же условиями и сортировкой, что на странице."""
+    appeals, _ = filter_appeals(request.GET)
+    appeals = appeals.order_by(*ORDERINGS[ordering(request.GET)])
+    name = f"appeals_{timezone.localtime():%Y-%m-%d_%H%M}"
+    if request.GET.get("format") == "xlsx":
+        return download(appeals_xlsx(appeals, request.user), f"{name}.xlsx")
+    return download(appeals_csv(appeals, request.user), f"{name}.csv")
 
 
 def highlight(text, stems):

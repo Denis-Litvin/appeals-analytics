@@ -14,6 +14,10 @@
     {% else %}
       <a class="btn btn-small" href="{% querystring order='new' page=None %}">Сначала новые</a>
     {% endif %}
+    {% if perms.appeals.export_reports %}
+      <a class="btn btn-small" href="{% url 'appeals:export' %}{% querystring format='csv' page=None %}">Выгрузить CSV</a>
+      <a class="btn btn-small" href="{% url 'appeals:export' %}{% querystring format='xlsx' page=None %}">Выгрузить XLSX</a>
+    {% endif %}
   </div>
 </div>
 

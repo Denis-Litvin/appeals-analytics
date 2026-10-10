@@ -130,6 +130,18 @@ def weekday_hour(df):
     }
 
 
+def daily_table(df, start, end):
+    """Обращения по дням и категориям: строка на каждый день периода, пустые дни с нулями."""
+    days = pd.date_range(start, end, freq="D").date
+    if df.empty:
+        return pd.DataFrame(index=days)
+    return (
+        df.assign(category=df["category"].fillna(NO_CATEGORY))
+        .groupby(["day", "category"]).size().unstack(fill_value=0)
+        .reindex(index=days, fill_value=0)
+    )
+
+
 def previous_period(start, end):
     """Предыдущий период той же длины, вплотную перед текущим."""
     length = end - start + timedelta(days=1)

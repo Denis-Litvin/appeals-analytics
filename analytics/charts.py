@@ -82,11 +82,7 @@ def daily(df, start, end, base, alerts=()):
     """Динамика по дням: линия на каждую категорию, треугольники в дни всплесков по категории."""
     days = pd.date_range(start, end, freq="D").date
     rows = stats.by_category(df)
-    table = (
-        df.assign(category=df["category"].fillna(stats.NO_CATEGORY))
-        .groupby(["day", "category"]).size().unstack(fill_value=0)
-        .reindex(index=days, fill_value=0)
-    )
+    table = stats.daily_table(df, start, end)
     fig = go.Figure()
     for row in rows:
         counts = table[row["key"]] if row["key"] in table else pd.Series(0, index=days)

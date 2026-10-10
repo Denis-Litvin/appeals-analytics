@@ -21,11 +21,22 @@
     </div>
   </div>
   <div class="actions no-print">
+    {% if perms.appeals.export_reports %}
+      <a class="btn" href="{% url 'analytics:report_export' %}{% querystring format='xlsx' %}">Скачать XLSX</a>
+    {% endif %}
     <button type="button" class="btn" onclick="window.print()">Печать</button>
   </div>
 </div>
 
 <div class="no-print">{% include "analytics/_period_form.html" %}</div>
+
+{% if perms.appeals.export_reports %}
+<p class="muted no-print">
+  Разделы в CSV:
+  {% for key, title in export_sections.items %}<a href="{% url 'analytics:report_export' %}{% querystring format='csv' section=key %}">{{ title|lower }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.
+  Файл CSV открывается в Excel без настройки: кодировка UTF-8, разделитель «;».
+</p>
+{% endif %}
 
 {% if report.conclusions %}
 <div class="panel">
