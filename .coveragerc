@@ -1,0 +1,12 @@
+# Покрытие кода тестами: coverage run manage.py test && coverage report
+[run]
+source = appeals, analytics, api, config
+omit =
+    */migrations/*
+    */tests/*
+    config/asgi.py
+    config/wsgi.py
+
+[report]
+show_missing = True
+skip_covered = False
