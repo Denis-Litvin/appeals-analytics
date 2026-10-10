@@ -30,7 +30,7 @@ def stats_page(request):
             channels=stats.by_channel(df),
             statuses=stats.by_status(df),
             reasons=stats.top_reasons(df),
-            heatmap=stats.weekday_hour(df),
+            charts=charts.stats_page(df, form),
         )
     return render(request, "analytics/stats.html", context)
 
@@ -42,15 +42,21 @@ def problems(request):
     prev_start, prev_end = stats.previous_period(start, end)
     current = stats.load_frame(form.appeals())
     previous = stats.load_frame(form.appeals(prev_start, prev_end))
+    rows = stats.problems(current, previous)
     context = {
         "form": form,
         "start": start,
         "end": end,
         "prev_start": prev_start,
         "prev_end": prev_end,
-        "rows": stats.problems(current, previous),
+        "rows": rows,
         "total": len(current),
+        "chart_limit": charts.PROBLEMS_LIMIT,
     }
+    if rows:
+        context["charts"] = {
+            "problems": charts.problems(rows, charts.link_base(form), charts.link_base(form, prev_start, prev_end))
+        }
     return render(request, "analytics/problems.html", context)
 
 
@@ -78,6 +84,19 @@ def compare(request):
         "notable_share": stats.NOTABLE_SHARE,
         "notable_count": stats.NOTABLE_COUNT,
     }
+    if len(base) or len(current):
+        base_link = charts.link_base(form, base_from, base_to)
+        current_link = charts.link_base(form, current_from, current_to)
+        slugs = {stats.NO_CATEGORY: "none"}
+        for df in (base, current):
+            known = df.dropna(subset=["category"])
+            slugs.update(zip(known["category"], known["category_slug"]))
+        context["charts"] = {
+            "categories": charts.compare_categories(categories, slugs, base_link, current_link),
+            "daily": charts.compare_daily(
+                base, current, form.base, form.current, base_link, current_link
+            ),
+        }
     return render(request, "analytics/compare.html", context)
 
 

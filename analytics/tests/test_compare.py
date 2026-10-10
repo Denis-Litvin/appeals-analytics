@@ -153,7 +153,8 @@ class ComparePageAccessTests(TestCase):
         self.client.force_login(User.objects.get(username="analyst"))
         response = self.client.get(reverse("analytics:compare"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "В обоих периодах нет обращений")
+        self.assertContains(response, "Нет данных за период.")
+        self.assertNotIn("charts", response.context)
         self.assertContains(response, "нет базы")
 
     def test_operator_forbidden(self):

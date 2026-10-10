@@ -33,9 +33,3 @@ def signed_percent(value):
     if value is None:
         return "новая"
     return f"{value * 100:+.0f}%"
-
-
-@register.filter
-def heat(value, peak):
-    """Насыщенность клетки тепловой карты от 0 до 1."""
-    return f"{value / peak:.2f}" if peak else "0"

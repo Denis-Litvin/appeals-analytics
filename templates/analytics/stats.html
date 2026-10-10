@@ -1,7 +1,9 @@
 {% extends "base.html" %}
-{% load analytics_format %}
+{% load static analytics_format %}
 
 {% block title %}Статистика{% endblock %}
+
+{% block head %}<link rel="stylesheet" href="{% static 'css/charts.css' %}">{% endblock %}
 
 {% block content %}
 <div class="page-head">
@@ -38,6 +40,7 @@
 <div class="grid grid-2">
   <div class="panel">
     <h2>Категории</h2>
+    <div id="chart-categories" class="chart" data-click></div>
     <table class="data">
       <thead><tr><th>Категория</th><th class="num">Обращений</th><th class="num">Доля</th></tr></thead>
       <tbody>
@@ -57,6 +60,7 @@
 
   <div class="panel">
     <h2>Частые причины</h2>
+    <div id="chart-reasons" class="chart" data-click></div>
     <table class="data">
       <thead><tr><th>#</th><th>Причина</th><th class="num">Обращений</th><th class="num">Доля</th></tr></thead>
       <tbody>
@@ -78,6 +82,7 @@
 
   <div class="panel">
     <h2>Каналы</h2>
+    <div id="chart-channels" class="chart chart-short" data-click></div>
     <table class="data">
       <thead><tr><th>Канал</th><th class="num">Обращений</th><th class="num">Доля</th></tr></thead>
       <tbody>
@@ -90,6 +95,7 @@
 
   <div class="panel">
     <h2>Статусы</h2>
+    <div id="chart-statuses" class="chart chart-short" data-click></div>
     <table class="data">
       <thead><tr><th>Статус</th><th class="num">Обращений</th><th class="num">Доля</th></tr></thead>
       <tbody>
@@ -107,27 +113,14 @@
 
 <div class="panel">
   <h2>По дням недели и часам</h2>
-  <p class="muted">Число обращений, время московское. Чем темнее клетка, тем больше обращений.</p>
-  <div class="table-wrap">
-    <table class="data heat">
-      <thead>
-        <tr><th></th>{% for h in heatmap.hours %}<th class="num">{{ h }}</th>{% endfor %}<th class="num">Всего</th></tr>
-      </thead>
-      <tbody>
-        {% for row in heatmap.rows %}
-        <tr>
-          <th>{{ row.weekday }}</th>
-          {% for value in row.cells %}
-            <td class="num" style="background: rgba(36, 89, 168, {{ value|heat:heatmap.peak }})">{{ value }}</td>
-          {% endfor %}
-          <td class="num"><strong>{{ row.total }}</strong></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <p class="muted chart-hint">Число обращений, время московское. Точное число видно при наведении на клетку.</p>
+  <div id="chart-heatmap" class="chart chart-short"></div>
 </div>
 {% else %}
-<div class="empty">Нет обращений за период.</div>
+<div class="empty">Нет данных за период.</div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if charts %}{% include "analytics/_charts_script.html" %}{% endif %}
 {% endblock %}

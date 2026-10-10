@@ -21,6 +21,9 @@ ACCENT = "#2459a8"
 GRID = "#eceef1"
 TEXT = "#1f2328"
 SPIKE = "#b42318"
+DOWN = "#1a7f37"
+MUTED = "#b8c0cc"
+PROBLEMS_LIMIT = 15
 
 
 @cache
@@ -57,15 +60,22 @@ def list_link(base, **params):
     return reverse("appeals:list") + "?" + urlencode(query)
 
 
-def link_base(form):
-    """Фильтры аналитической страницы в виде параметров списка обращений."""
+def link_base(form, start=None, end=None):
+    """Фильтры аналитической страницы в виде параметров списка обращений. Период можно задать другой."""
     data = form.cleaned_data
+    if start is None:
+        start, end = data["date_from"], data["date_to"]
     return {
-        "date_from": data["date_from"].isoformat(),
-        "date_to": data["date_to"].isoformat(),
+        "date_from": start.isoformat(),
+        "date_to": end.isoformat(),
         "category": data.get("category", ""),
         "channel": data.get("channel", ""),
     }
+
+
+def growth_label(value):
+    """Прирост для подписи на графике: «+25%», «-40%», «новая»."""
+    return "новая" if value is None else f"{value * 100:+.0f}%"
 
 
 def daily(df, start, end, base, alerts=()):
@@ -131,7 +141,7 @@ def categories(df, base):
             hole=0.45,
             sort=False,
             direction="clockwise",
-            textinfo="percent",
+            texttemplate="%{percent:.1%}",
             customdata=[list_link(base, category=r["slug"]) for r in rows],
             hovertemplate="%{label}: %{value} (%{percent})<extra></extra>",
         )
@@ -197,6 +207,126 @@ def bars(rows, base, field):
     )
     fig.update_layout(layout())
     return figure(fig)
+
+
+def problems(rows, base, previous_base, limit=PROBLEMS_LIMIT):
+    """Рейтинг проблем (Д7): обращения за период и за предыдущий такой же период, подпись с приростом."""
+    rows = rows[:limit][::-1]
+    names = [r["name"] for r in rows]
+    colors = [SPIKE if r["growth"] is None or r["growth"] > 0 else DOWN if r["growth"] < 0 else ACCENT for r in rows]
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=[r["prev_count"] for r in rows],
+            y=names,
+            name="Предыдущий период",
+            orientation="h",
+            marker={"color": MUTED},
+            customdata=[list_link(previous_base, reason=r["reason_id"]) for r in rows],
+            hovertemplate="%{y}<br>Предыдущий период: %{x}<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            x=[r["count"] for r in rows],
+            y=names,
+            name="Текущий период",
+            orientation="h",
+            marker={"color": colors},
+            text=[growth_label(r["growth"]) for r in rows],
+            textposition="outside",
+            cliponaxis=False,
+            customdata=[list_link(base, reason=r["reason_id"]) for r in rows],
+            hovertemplate="%{y}<br>Текущий период: %{x}, прирост %{text}<extra></extra>",
+        )
+    )
+    peak = max([r["count"] for r in rows] + [r["prev_count"] for r in rows] + [1])
+    fig.update_layout(
+        layout(
+            barmode="group",
+            bargap=0.25,
+            # Запас справа под подпись прироста у самого длинного столбца.
+            xaxis={"gridcolor": GRID, "range": [0, peak * 1.15], "automargin": True},
+            showlegend=True,
+            legend={"orientation": "h", "y": -0.08, "traceorder": "reversed"},
+            margin={"l": 8, "r": 48, "t": 8, "b": 8},
+        )
+    )
+    return figure(fig)
+
+
+def compare_categories(rows, slugs, base_link, current_link):
+    """Сравнение периодов (Д6) по категориям: обращений в день в базовом и текущем периоде."""
+    names = [r["name"] for r in rows]
+    fig = go.Figure()
+    for title, field, link, color in (
+        ("Базовый период", "base_per_day", base_link, MUTED),
+        ("Текущий период", "current_per_day", current_link, ACCENT),
+    ):
+        fig.add_trace(
+            go.Bar(
+                x=names,
+                y=[r[field] for r in rows],
+                name=title,
+                marker={"color": color},
+                customdata=[list_link(link, category=slugs.get(name, "none")) for name in names],
+                hovertemplate="%{x}<br>" + title + ": %{y} в день<extra></extra>",
+            )
+        )
+    fig.update_layout(
+        layout(
+            barmode="group",
+            showlegend=True,
+            legend={"orientation": "h", "y": 1.08},
+            margin={"l": 48, "r": 16, "t": 24, "b": 40},
+        )
+    )
+    return figure(fig)
+
+
+def compare_daily(base, current, base_period, current_period, base_link, current_link):
+    """Дневные ряды двух периодов наложены по номеру дня: первый день базы против первого дня текущего."""
+    fig = go.Figure()
+    for title, df, (start, end), link, color in (
+        ("Базовый период", base, base_period, base_link, MUTED),
+        ("Текущий период", current, current_period, current_link, ACCENT),
+    ):
+        days = pd.date_range(start, end, freq="D").date
+        counts = df.groupby("day").size().reindex(days, fill_value=0)
+        fig.add_trace(
+            go.Scatter(
+                x=list(range(1, len(days) + 1)),
+                y=[int(v) for v in counts],
+                name=title,
+                mode="lines+markers",
+                line={"color": color, "width": 2},
+                marker={"size": 5},
+                text=[d.strftime("%d.%m.%Y") for d in days],
+                customdata=[list_link(link, date_from=d.isoformat(), date_to=d.isoformat()) for d in days],
+                hovertemplate="%{text}<br>" + title + ": %{y}<extra></extra>",
+            )
+        )
+    fig.update_layout(
+        layout(
+            showlegend=True,
+            legend={"orientation": "h", "y": 1.08},
+            hovermode="closest",
+            xaxis={"gridcolor": GRID, "title": {"text": "день периода"}, "automargin": True},
+            margin={"l": 48, "r": 16, "t": 24, "b": 40},
+        )
+    )
+    return figure(fig)
+
+
+def stats_page(df, form):
+    base = link_base(form)
+    return {
+        "categories": categories(df, base),
+        "reasons": reasons(df, base),
+        "channels": bars(stats.by_channel(df), base, "channel"),
+        "statuses": bars(stats.by_status(df), base, "status"),
+        "heatmap": heatmap(df),
+    }
 
 
 def dashboard(df, form, alerts=()):

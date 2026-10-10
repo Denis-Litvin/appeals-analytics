@@ -234,8 +234,8 @@ class PagesTests(TestCase):
 
     def test_empty_period(self):
         params = {"date_from": "2020-01-01", "date_to": "2020-01-31"}
-        self.assertContains(self.get_as("analyst", reverse("analytics:stats"), params), "Нет обращений за период")
-        self.assertContains(self.get_as("analyst", reverse("analytics:problems"), params), "Нет обращений")
+        self.assertContains(self.get_as("analyst", reverse("analytics:stats"), params), "Нет данных за период.")
+        self.assertContains(self.get_as("analyst", reverse("analytics:problems"), params), "Нет данных за период.")
 
     def test_problems_page_content(self):
         response = self.get_as("analyst", reverse("analytics:problems"))

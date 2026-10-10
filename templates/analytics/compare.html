@@ -1,9 +1,10 @@
 {% extends "base.html" %}
-{% load analytics_format %}
+{% load static analytics_format %}
 
 {% block title %}Сравнение периодов{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{% static 'css/charts.css' %}">
 <style>
   tr.notable td { font-weight: 600; }
   tr.notable td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
@@ -82,6 +83,18 @@
 </div>
 
 {% if totals.base_count or totals.current_count %}
+<div class="grid grid-2">
+  <div class="panel">
+    <h2>Категории, обращений в день</h2>
+    <p class="muted chart-hint">Клик по столбцу открывает обращения категории за этот период.</p>
+    <div id="chart-categories" class="chart" data-click></div>
+  </div>
+  <div class="panel">
+    <h2>По дням</h2>
+    <p class="muted chart-hint">Периоды наложены по номеру дня. Клик по точке открывает обращения за этот день.</p>
+    <div id="chart-daily" class="chart" data-click></div>
+  </div>
+</div>
 <div class="panel">
   <h2>Категории</h2>
   {% include "analytics/_compare_table.html" with rows=categories by_reason=False %}
@@ -96,11 +109,12 @@
   в текущем периоде при дневном уровне базового.
 </p>
 {% else %}
-<div class="empty">В обоих периодах нет обращений.</div>
+<div class="empty">Нет данных за период.</div>
 {% endif %}
 {% endblock %}
 
 {% block scripts %}
+{% if charts %}{% include "analytics/_charts_script.html" %}{% endif %}
 <script>
   // Если дату поменяли руками, сравнение становится произвольным.
   (function () {

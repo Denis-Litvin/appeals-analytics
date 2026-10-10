@@ -1,7 +1,9 @@
 {% extends "base.html" %}
-{% load analytics_format %}
+{% load static analytics_format %}
 
 {% block title %}Рейтинг проблем{% endblock %}
+
+{% block head %}<link rel="stylesheet" href="{% static 'css/charts.css' %}">{% endblock %}
 
 {% block content %}
 <div class="page-head">
@@ -14,6 +16,15 @@
 {% include "analytics/_period_form.html" %}
 
 {% if rows %}
+<div class="panel">
+  <h2>Первые {{ chart_limit }} мест</h2>
+  <p class="muted chart-hint">
+    Серый столбец: предыдущий период, цветной: текущий. Красный означает рост, зелёный снижение, подпись
+    показывает прирост. Клик по столбцу открывает обращения с этой причиной за соответствующий период.
+  </p>
+  <div id="chart-problems" class="chart" style="height: 560px" data-click></div>
+</div>
+
 <div class="table-wrap">
   <table class="data">
     <thead>
@@ -64,6 +75,10 @@
   и подъём в рейтинге выделены красным: проблема стала встречаться чаще.
 </p>
 {% else %}
-<div class="empty">Нет обращений с определённой причиной за период.</div>
+<div class="empty">Нет данных за период.</div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if charts %}{% include "analytics/_charts_script.html" %}{% endif %}
 {% endblock %}
