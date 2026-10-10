@@ -1,6 +1,15 @@
 from django import template
+from django.urls import reverse
+
+from analytics.charts import PLOTLY_VERSION
 
 register = template.Library()
+
+
+@register.simple_tag
+def plotly_src():
+    """Адрес plotly.js с версией пакета: при обновлении plotly браузер загрузит новый файл."""
+    return reverse("analytics:plotly_js", args=[PLOTLY_VERSION])
 
 
 @register.filter

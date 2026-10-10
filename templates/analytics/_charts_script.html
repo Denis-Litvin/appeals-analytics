@@ -1,0 +1,4 @@
+{% load static analytics_format %}
+{{ charts|json_script:"charts-data" }}
+<script src="{% plotly_src %}"></script>
+<script src="{% static 'js/charts.js' %}"></script>

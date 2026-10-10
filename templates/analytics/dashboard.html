@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load static analytics_format %}
+
+{% block title %}Дашборд{% endblock %}
+
+{% block head %}<link rel="stylesheet" href="{% static 'css/charts.css' %}">{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Дашборд</h1>
+  <span class="muted">{{ start|date:"d.m.Y" }} - {{ end|date:"d.m.Y" }}, дней: {{ summary.days }}</span>
+</div>
+
+{% include "analytics/_period_form.html" %}
+
+<div class="grid grid-4" style="margin-bottom: 1rem">
+  <div class="tile">
+    <div class="label">Обращений</div>
+    <div class="value">{{ summary.total }}</div>
+    <div class="delta muted">в среднем {{ summary.per_day|floatformat:1 }} в день</div>
+  </div>
+  <div class="tile">
+    <div class="label">Открытые: новые и в работе</div>
+    <div class="value">{{ summary.open_count }}</div>
+    <div class="delta muted">{{ summary.open_share|percent }} от всех</div>
+  </div>
+  <div class="tile">
+    <div class="label">Без категории</div>
+    <div class="value">{{ summary.without_category }}</div>
+    <div class="delta muted">{{ summary.without_category_share|percent }}</div>
+  </div>
+  <div class="tile">
+    <div class="label">Медиана времени решения</div>
+    <div class="value">{{ summary.median_resolution_hours|hours }}</div>
+    <div class="delta muted">по решённым и закрытым</div>
+  </div>
+</div>
+
+{% if charts %}
+<div class="panel">
+  <h2>Обращения по дням</h2>
+  <p class="muted chart-hint">
+    Треугольник отмечает резкий рост по категории. Клик по линии или треугольнику открывает обращения
+    категории за этот день, клик по легенде скрывает линию.
+  </p>
+  <div id="chart-daily" class="chart chart-tall" data-click></div>
+</div>
+
+<div class="grid grid-2">
+  <div class="panel">
+    <h2>Доли категорий</h2>
+    <p class="muted chart-hint">Клик по сектору открывает обращения категории за период.</p>
+    <div id="chart-categories" class="chart" data-click></div>
+  </div>
+  <div class="panel">
+    <h2>Топ-10 причин</h2>
+    <p class="muted chart-hint">Клик по столбцу открывает обращения с этой причиной.</p>
+    <div id="chart-reasons" class="chart" data-click></div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>По дням недели и часам</h2>
+  <p class="muted chart-hint">Время московское.</p>
+  <div id="chart-heatmap" class="chart chart-short"></div>
+</div>
+
+<div class="grid grid-2">
+  <div class="panel">
+    <h2>Каналы</h2>
+    <div id="chart-channels" class="chart chart-short" data-click></div>
+  </div>
+  <div class="panel">
+    <h2>Статусы</h2>
+    <div id="chart-statuses" class="chart chart-short" data-click></div>
+  </div>
+</div>
+{% else %}
+<div class="empty">Нет данных за период.</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if charts %}{% include "analytics/_charts_script.html" %}{% endif %}
+{% endblock %}

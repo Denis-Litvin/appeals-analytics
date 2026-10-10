@@ -1,11 +1,12 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.decorators import login_not_required, permission_required
 from django.core.paginator import Paginator
+from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from . import stats
+from . import charts, stats
 from .forms import compare_form, period_form
 from .models import SpikeAlert
 
@@ -82,7 +83,24 @@ def compare(request):
 
 @analytics_required
 def dashboard(request):
-    return _placeholder(request, "Дашборд", 14)
+    form = period_form(request.GET)
+    start, end = form.period
+    df = stats.load_frame(form.appeals())
+    context = {"form": form, "start": start, "end": end, "summary": stats.summary(df, start, end)}
+    if len(df):
+        alerts = SpikeAlert.objects.filter(reason__isnull=True, day__range=(start, end)).select_related("category")
+        context["charts"] = charts.dashboard(df, form, alerts)
+    return render(request, "analytics/dashboard.html", context)
+
+
+@login_not_required
+def plotly_js(request, version):
+    """plotly.js из Python-пакета. Версия в адресе меняется вместе с пакетом, поэтому кэш можно держать год."""
+    if version != charts.PLOTLY_VERSION:
+        raise Http404
+    response = HttpResponse(charts.plotly_js(), content_type="text/javascript; charset=utf-8")
+    response["Cache-Control"] = "public, max-age=31536000, immutable"
+    return response
 
 
 @analytics_required
