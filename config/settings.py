@@ -16,6 +16,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "rest_framework",
+    "rest_framework.authtoken",
     "appeals",
     "analytics",
     "api",
@@ -98,6 +100,16 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Письма о всплесках в демо выводятся в консоль. Для настоящей почты задать EMAIL_BACKEND и SMTP-параметры.
 EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "appeals@example.com")
+
+# REST API (Д9): только токен в заголовке Authorization, ответы только в JSON.
+# Без токена ответ 401, с токеном без нужного права 403 (api/permissions.py).
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.TokenAuthentication"],
+    "DEFAULT_PERMISSION_CLASSES": ["api.permissions.RolePermission"],
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_PAGINATION_CLASS": "api.pagination.Pagination",
+    "UNAUTHENTICATED_USER": None,
+}
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "/"
