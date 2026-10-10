@@ -13,7 +13,7 @@
 | А5 Реализация аналитических функций | 5, 11, 12, 13, 16, 17, 18 | e5d0195, d4473fa, 57e1908, 665019c, b540561, e4cb107, d65c73b | appeals/classify.py, analytics/stats.py, analytics/spikes.py, analytics/reports.py, analytics/export.py, api/views.py |
 | А6 Разработка визуализации | 14, 15, 16 | d08e9d2, f0ebd5f, b540561 | analytics/charts.py, static/js/charts.js, шаблоны analytics/ |
 | А7 Тестирование | каждый шаг, отдельно 19 | все, 5f0cda5 | тесты в appeals/tests, analytics/tests, api/tests, tests/; docs/testing.md |
-| А8 Подготовка документации | 1, 2, 7, 18, 19, 20 | ff9b5e4, 7be90c7, 1ebb969, d65c73b, 5f0cda5, шаг 20 | README.md и docs/ |
+| А8 Подготовка документации | 1, 2, 7, 18, 19, 20 | ff9b5e4, 7be90c7, 1ebb969, d65c73b, 5f0cda5, 2050eea | README.md и docs/ |
 
 Тесты писались вместе с кодом на каждом шаге и лежат в том же коммите. Шаг 19 добавил проверку всех адресов по ролям, сквозной сценарий и замер покрытия.
 
@@ -41,5 +41,5 @@
 | 17 | e4cb107 | выгрузка отчёта и списка в XLSX и CSV | Д5 | analytics/export.py |
 | 18 | d65c73b | REST API с токенами | Д9, Д10 | api/, docs/api.md |
 | 19 | 5f0cda5 | матрица доступа, сквозной сценарий, покрытие | А7 | tests/, docs/testing.md, .coveragerc |
-| 20 | этот шаг | документация | А8, Р2 | README.md, docs/architecture.md, docs/user-guide.md, docs/stages.md |
-| 21 | после шага 20 | финальная сверка на чистой копии, таблица покрытия требований, тег v1.0 | Р1, Р2 | docs/requirements-coverage.md |
+| 20 | 2050eea | документация | А8, Р2 | README.md, docs/architecture.md, docs/user-guide.md, docs/stages.md |
+| 21 | тег v1.0 | финальная сверка на чистой копии, поиск по email только для тех, кто видит email, таблица покрытия требований | Р1, Р2, Д10 | docs/requirements-coverage.md, appeals/filters.py |

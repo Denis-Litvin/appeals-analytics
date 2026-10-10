@@ -416,7 +416,8 @@ def summary(stats):
     words = sorted(stats.words)
     lines.append(f"Длина текста в словах: от {words[0]} до {words[-1]}, медиана {statistics.median(words):.0f}")
     for day, reason, n, median in stats.spikes:
-        lines.append(f"Всплеск {day:%d.%m.%Y}: {reason}, {n} обращений при обычных {median:.0f}")
+        word = dp.plural(n, ("обращение", "обращения", "обращений"))
+        lines.append(f"Всплеск {day:%d.%m.%Y}: {reason}, {n} {word} при обычных {median:.0f}")
     return lines
 
 

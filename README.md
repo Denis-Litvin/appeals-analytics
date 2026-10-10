@@ -93,7 +93,7 @@ python manage.py runserver
 python manage.py test
 ```
 
-Прогон из 284 тестов занимает около 40 секунд. Покрытие кода 99%, как его измерить и что проверяет каждый файл тестов, описано в [docs/testing.md](docs/testing.md).
+Прогон из 286 тестов занимает около 40 секунд. Покрытие кода 99%, как его измерить и что проверяет каждый файл тестов, описано в [docs/testing.md](docs/testing.md).
 
 ## Настройки
 
@@ -154,6 +154,7 @@ API:
 | [docs/demo-data.md](docs/demo-data.md) | как устроены демо-данные |
 | [docs/testing.md](docs/testing.md) | тесты, покрытие, ручная проверка (А7) |
 | [docs/stages.md](docs/stages.md) | этапы А1-А8: шаги, коммиты и файлы |
+| [docs/requirements-coverage.md](docs/requirements-coverage.md) | каждый код требования: где в коде, какой тест, как увидеть, проверка на чистой копии |
 
 ## Структура
 

@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from .forms import AppealFilterForm
 from .models import Appeal
+from .roles import can_see_personal
 from .text import STOP_WORDS, stem, tokens
 
 NUMBER_RE = re.compile(r"^#\s*(\d+)$")
@@ -20,17 +21,19 @@ def starts_word(prefix):
     return Q(text_norm__startswith=prefix) | Q(text_norm__contains=" " + prefix)
 
 
-def text_query(q):
+def text_query(q, by_email=True):
     """Условие для строки поиска.
 
     #1234 ищет по номеру обращения, строка с @ по email автора. Фраза в кавычках ищется как идущие подряд
     основы. Остальные слова ищутся каждое по началу основы, все вместе через И, служебные слова пропускаются.
+    by_email=False: строка с @ ищется как обычный текст. Иначе тот, кому email не показывают, мог бы проверить,
+    писал ли конкретный адрес.
     """
     q = q.strip()
     number = NUMBER_RE.match(q)
     if number:
         return Q(pk=int(number.group(1)))
-    if "@" in q:
+    if "@" in q and by_email:
         return Q(author_email__icontains=q)
     condition = Q()
     for phrase in PHRASE_RE.findall(q):
@@ -48,10 +51,10 @@ def day_start(day):
     return timezone.make_aware(datetime.combine(day, time.min))
 
 
-def apply_filters(queryset, data):
+def apply_filters(queryset, data, by_email=True):
     """Накладывает на queryset проверенные значения формы фильтров."""
     if data.get("q"):
-        queryset = queryset.filter(text_query(data["q"]))
+        queryset = queryset.filter(text_query(data["q"], by_email))
     # Сутки считаются по Москве, сравнение по диапазону времени использует индекс created_at.
     if data.get("date_from"):
         queryset = queryset.filter(created_at__gte=day_start(data["date_from"]))
@@ -85,10 +88,15 @@ def apply_filters(queryset, data):
     return queryset
 
 
-def filter_appeals(params, queryset=None):
-    """Возвращает (отфильтрованный queryset, форма). Ошибочное поле пропускается, остальные применяются."""
+def filter_appeals(params, user=None, queryset=None):
+    """Возвращает (отфильтрованный queryset, форма). Ошибочное поле пропускается, остальные применяются.
+
+    user: кто ищет. Поиск по email доступен, только если пользователю показывают email автора.
+    Без user ограничения нет, так фильтр вызывается из команд и тестов.
+    """
     form = AppealFilterForm(params)
     form.is_valid()
     queryset = Appeal.objects.all() if queryset is None else queryset
-    return apply_filters(queryset, form.cleaned_data), form
+    by_email = user is None or can_see_personal(user)
+    return apply_filters(queryset, form.cleaned_data, by_email), form
 

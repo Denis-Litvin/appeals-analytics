@@ -82,6 +82,14 @@ class FilterTests(TestCase):
         self.assertEqual(self.ids(q="petrov@"), {self.unclear.pk})
         self.assertEqual(self.ids(q="@YANDEX.ru"), {self.unclear.pk})
 
+    def test_email_search_only_for_those_who_see_email(self):
+        # Аналитик не видит email автора и не должен проверять поиском, писал ли конкретный адрес.
+        found = {}
+        for username in ("operator", "analyst", "admin"):
+            appeals, _ = filter_appeals(QueryDict("q=petrov@yandex.ru"), User.objects.get(username=username))
+            found[username] = set(appeals.values_list("pk", flat=True))
+        self.assertEqual(found, {"operator": {self.unclear.pk}, "analyst": set(), "admin": {self.unclear.pk}})
+
     def test_period_by_moscow_days(self):
         # 15 сентября 23:30 по Москве уже 20:30 UTC того же дня, но граница суток считается по Москве.
         self.assertEqual(self.ids(date_from="2026-09-15", date_to="2026-09-15"), {self.courier.pk})
@@ -177,3 +185,9 @@ class ListFilterViewTests(TestCase):
 
     def test_empty_result(self):
         self.assertContains(self.client.get(reverse("appeals:list"), {"q": "#999999"}), "По заданным условиям")
+
+    def test_analyst_cannot_search_by_email(self):
+        Appeal.objects.create(text="Где мой заказ", author_email="secret@mail.ru", created_at=at(6))
+        self.assertContains(self.client.get(reverse("appeals:list"), {"q": "secret@mail.ru"}), "Найдено: 0")
+        self.client.force_login(User.objects.get(username="operator"))
+        self.assertContains(self.client.get(reverse("appeals:list"), {"q": "secret@mail.ru"}), "Найдено: 1")

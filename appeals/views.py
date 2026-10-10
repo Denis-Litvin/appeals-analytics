@@ -37,7 +37,7 @@ def ordering(params):
 @permission_required("appeals.view_appeal", raise_exception=True)
 def appeal_list(request):
     order = ordering(request.GET)
-    appeals, form = filter_appeals(request.GET)
+    appeals, form = filter_appeals(request.GET, request.user)
     appeals = (
         appeals.select_related("category", "reason")
         .prefetch_related("tags")
@@ -52,7 +52,7 @@ def appeal_list(request):
 @permission_required("appeals.export_reports", raise_exception=True)
 def appeal_export(request):
     """Отфильтрованный список целиком, с теми же условиями и сортировкой, что на странице."""
-    appeals, _ = filter_appeals(request.GET)
+    appeals, _ = filter_appeals(request.GET, request.user)
     appeals = appeals.order_by(*ORDERINGS[ordering(request.GET)])
     name = f"appeals_{timezone.localtime():%Y-%m-%d_%H%M}"
     if request.GET.get("format") == "xlsx":

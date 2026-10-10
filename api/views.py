@@ -174,7 +174,7 @@ class AppealListView(generics.ListCreateAPIView):
     perms = {"GET": "appeals.view_appeal", "POST": "appeals.add_appeal"}
 
     def get_queryset(self):
-        appeals, form = filter_appeals(self.request.query_params)
+        appeals, form = filter_appeals(self.request.query_params, self.request.user)
         checked(form)
         return (
             appeals.select_related("category", "reason", "assignee")
