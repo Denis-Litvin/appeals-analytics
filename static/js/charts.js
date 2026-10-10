@@ -57,6 +57,7 @@
     return typeof link === "string" && link.charAt(0) === "/" ? link : null;
   }
 
+  var drawn = [];
   Object.keys(charts).forEach(function (name) {
     var element = document.getElementById("chart-" + name);
     if (!element) {
@@ -64,6 +65,7 @@
     }
     var chart = charts[name];
     Plotly.newPlot(element, chart.data, chart.layout, config);
+    drawn.push(element);
     if (element.hasAttribute("data-click")) {
       element.on("plotly_click", function (event) {
         var link = event.points.length ? linkOf(event.points[0]) : null;
@@ -72,5 +74,12 @@
         }
       });
     }
+  });
+
+  // При печати ширина страницы меньше экрана: графики перестраиваются под неё.
+  window.addEventListener("beforeprint", function () {
+    drawn.forEach(function (element) {
+      Plotly.Plots.resize(element);
+    });
   });
 })();

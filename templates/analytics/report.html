@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% load static analytics_format %}
+
+{% block title %}Отчёт {{ report.start|date:"d.m.Y" }} - {{ report.end|date:"d.m.Y" }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/charts.css' %}">
+<link rel="stylesheet" href="{% static 'css/print.css' %}" media="print">
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Аналитический отчёт</h1>
+    <div class="muted">
+      {{ report.start|date:"d.m.Y" }} - {{ report.end|date:"d.m.Y" }}, сравнение с
+      {{ report.prev_start|date:"d.m.Y" }} - {{ report.prev_end|date:"d.m.Y" }}{% if form.cleaned_data.category %},
+      категория: {% for value, label in form.fields.category.choices %}{% if value == form.cleaned_data.category %}{{ label }}{% endif %}{% endfor %}{% endif %}{% if form.cleaned_data.channel %},
+      канал: {% for value, label in form.fields.channel.choices %}{% if value == form.cleaned_data.channel %}{{ label }}{% endif %}{% endfor %}{% endif %}.
+      Сформирован {% now "d.m.Y H:i" %}.
+    </div>
+  </div>
+  <div class="actions no-print">
+    <button type="button" class="btn" onclick="window.print()">Печать</button>
+  </div>
+</div>
+
+<div class="no-print">{% include "analytics/_period_form.html" %}</div>
+
+{% if report.conclusions %}
+<div class="panel">
+  <h2>Выводы</h2>
+  <ul class="conclusions">
+    {% for line in report.conclusions %}<li>{{ line }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="panel">
+  <h2>Сводка</h2>
+  <table class="data">
+    <thead>
+      <tr><th>Показатель</th><th class="num">Период</th><th class="num">Предыдущий период</th><th class="num">Изменение</th></tr>
+    </thead>
+    <tbody>
+      {% for row in report.summary_rows %}
+      <tr>
+        <td>{{ row.name }}</td>
+        <td class="num">{{ row.current }}</td>
+        <td class="num">{{ row.previous }}</td>
+        <td class="num">{% if row.change is None %}<span class="muted">нет базы</span>{% else %}{{ row.change|signed_percent }}{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if charts %}
+<div class="panel">
+  <h2>Динамика по дням</h2>
+  <p class="muted chart-hint">Треугольник отмечает резкий рост по категории.</p>
+  <div id="chart-daily" class="chart chart-tall" data-click></div>
+</div>
+
+<div class="panel">
+  <h2>Категории</h2>
+  <div class="grid grid-2">
+    <div id="chart-categories" class="chart" data-click></div>
+    <table class="data">
+      <thead>
+        <tr><th>Категория</th><th class="num">Период</th><th class="num">Доля</th><th class="num">Было</th><th class="num">Изменение</th></tr>
+      </thead>
+      <tbody>
+        {% for row in report.categories %}
+        <tr{% if row.notable %} class="notable"{% endif %}>
+          <td>{{ row.name }}</td>
+          <td class="num">{{ row.current_count }}</td>
+          <td class="num">{{ row.share|percent }}</td>
+          <td class="num">{{ row.base_count }}</td>
+          <td class="num {% if row.change is None or row.change > 0 %}up{% elif row.change < 0 %}down{% endif %}">
+            {% if row.change is None %}новая{% else %}{{ row.change|signed_percent }}{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">
+    Жирным выделены заметные изменения: не меньше {{ report.notable_share|percent:0 }} и не меньше
+    {{ report.notable_count }} обращений разницы.
+  </p>
+</div>
+
+<div class="panel">
+  <h2>Топ-{{ report.reasons|length }} причин</h2>
+  <div class="grid grid-2">
+    <div id="chart-reasons" class="chart" data-click></div>
+    <table class="data">
+      <thead>
+        <tr><th class="num">Место</th><th>Причина</th><th class="num">Период</th><th class="num">Было</th><th class="num">Прирост</th></tr>
+      </thead>
+      <tbody>
+        {% for row in report.reasons %}
+        <tr>
+          <td class="num">{{ row.rank }}</td>
+          <td>{{ row.name }}<div class="muted">{{ row.category }}</div></td>
+          <td class="num">{{ row.count }}</td>
+          <td class="num">{{ row.prev_count }}</td>
+          <td class="num {% if row.growth is None or row.growth > 0 %}up{% elif row.growth < 0 %}down{% endif %}">{{ row.growth|signed_percent }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Резкий рост</h2>
+  {% if report.alerts %}
+  <table class="data">
+    <thead>
+      <tr><th>День</th><th>Категория и причина</th><th class="num">Обращений</th><th class="num">Обычно</th><th class="num">Рост</th></tr>
+    </thead>
+    <tbody>
+      {% for alert in report.alerts %}
+      <tr>
+        <td class="nowrap">{{ alert.day|date:"d.m.Y" }}</td>
+        <td>{{ alert.category.name }}{% if alert.reason %}: {{ alert.reason.name }}{% else %} <span class="muted">(вся категория)</span>{% endif %}</td>
+        <td class="num">{{ alert.count }}</td>
+        <td class="num">{{ alert.baseline|floatformat:1 }}</td>
+        <td class="num up">в {{ alert.ratio|floatformat:1 }} раза</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">За период резкого роста не было.</p>
+  {% endif %}
+</div>
+{% else %}
+<div class="empty">Нет данных за период.</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if charts %}{% include "analytics/_charts_script.html" %}{% endif %}
+{% endblock %}

@@ -9,13 +9,9 @@ from django.views.decorators.http import require_POST
 from . import charts, stats
 from .forms import compare_form, period_form
 from .models import SpikeAlert
+from .reports import build as build_report
 
 analytics_required = permission_required("appeals.view_analytics", raise_exception=True)
-
-
-# Разделы, которые ещё не готовы, номер шага показывает, когда появится содержимое.
-def _placeholder(request, title, step):
-    return render(request, "placeholder.html", {"title": title, "step": step})
 
 
 @analytics_required
@@ -124,7 +120,12 @@ def plotly_js(request, version):
 
 @analytics_required
 def reports(request):
-    return _placeholder(request, "Отчёты", 16)
+    form = period_form(request.GET)
+    report = build_report(form)
+    context = {"form": form, "report": report, "start": report["start"], "end": report["end"]}
+    if "charts" in report:
+        context["charts"] = report["charts"]
+    return render(request, "analytics/report.html", context)
 
 
 @analytics_required

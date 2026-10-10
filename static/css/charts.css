@@ -13,3 +13,6 @@
   height: 100%;
   color: var(--muted);
 }
+.conclusions { margin: 0; padding-left: 1.2rem; }
+.conclusions li { margin-bottom: .35rem; }
+tr.notable td { font-weight: 600; }

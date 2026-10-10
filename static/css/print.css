@@ -1,0 +1,17 @@
+/* Печатная версия отчёта (О9). Подключается с media="print": меню, фильтры и кнопки скрыты,
+   панели не разрываются между страницами, цвета графиков сохраняются. */
+@page { size: A4; margin: 14mm 12mm; }
+
+.topbar,
+.no-print,
+.notice,
+.modebar-container { display: none !important; }
+
+body { background: #fff; font-size: 11px; }
+.page { max-width: none; margin: 0; padding: 0; }
+.panel { border: none; padding: 0; margin: 0 0 6mm; break-inside: avoid; }
+.chart { break-inside: avoid; }
+table.data th, table.data td { padding: 3px 6px; }
+table.data tbody tr:hover { background: none; }
+a { color: inherit; text-decoration: none; }
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
