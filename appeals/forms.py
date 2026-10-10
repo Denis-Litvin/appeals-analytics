@@ -6,11 +6,12 @@ from .roles import OPERATOR
 
 
 class ReasonSelect(forms.Select):
-    """Список причин, у каждого варианта своя категория: скрипт формы прячет причины чужих категорий."""
+    """Список причин, у каждого варианта своя категория: скрипт формы прячет причины чужих категорий.
+    category_field: чем категория обозначена в соседнем списке, id в форме правки, slug в фильтре."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, category_field="category_id", **kwargs):
         super().__init__(*args, **kwargs)
-        self.categories = dict(Reason.objects.values_list("id", "category_id"))
+        self.categories = dict(Reason.objects.values_list("id", category_field))
 
     def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
         option = super().create_option(name, value, label, selected, index, subindex, attrs)
@@ -70,3 +71,54 @@ class AppealEditForm(forms.ModelForm):
     @property
     def category_changed(self):
         return bool({"category", "reason"} & set(self.changed_data))
+
+
+class AppealFilterForm(forms.Form):
+    """Фильтры списка обращений. Все поля необязательные, пустое поле не ограничивает выборку."""
+
+    NONE = "none"
+    OPEN = "open"
+
+    q = forms.CharField(
+        required=False,
+        label="Поиск",
+        widget=forms.TextInput(attrs={"type": "search", "placeholder": "слова, \"фраза\", #номер или email"}),
+    )
+    date_from = forms.DateField(required=False, label="С", widget=forms.DateInput(attrs={"type": "date"}))
+    date_to = forms.DateField(required=False, label="По", widget=forms.DateInput(attrs={"type": "date"}))
+    category = forms.ChoiceField(required=False, label="Категория")
+    reason = forms.ModelChoiceField(
+        Reason.objects.select_related("category"), required=False, label="Причина", empty_label="все"
+    )
+    tags = forms.ModelMultipleChoiceField(
+        Tag.objects.all(), required=False, label="Теги", widget=forms.SelectMultiple(attrs={"size": 4})
+    )
+    channel = forms.ChoiceField(required=False, label="Канал", choices=[("", "все")] + Appeal.Channel.choices)
+    status = forms.ChoiceField(
+        required=False,
+        label="Статус",
+        choices=[("", "все"), (OPEN, "Открытые: новые и в работе")] + Appeal.Status.choices,
+    )
+    source = forms.ChoiceField(
+        required=False, label="Источник категории", choices=[("", "все")] + Appeal.Source.choices
+    )
+    assignee = forms.ChoiceField(required=False, label="Исполнитель")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["category"].choices = (
+            [("", "все"), (self.NONE, "Без категории")] + list(Category.objects.values_list("slug", "name"))
+        )
+        self.fields["reason"].widget = ReasonSelect(
+            choices=self.fields["reason"].choices, category_field="category__slug"
+        )
+        operators = User.objects.filter(groups__name=OPERATOR).order_by("last_name", "first_name")
+        self.fields["assignee"].choices = [("", "все"), (self.NONE, "Не назначен")] + [
+            (str(u.pk), u.get_full_name() or u.username) for u in operators
+        ]
+
+    def clean(self):
+        data = super().clean()
+        if data.get("date_from") and data.get("date_to") and data["date_from"] > data["date_to"]:
+            self.add_error("date_to", "Конец периода раньше начала.")
+        return data

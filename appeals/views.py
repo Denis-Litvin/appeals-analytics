@@ -11,6 +11,7 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST
 
 from .classify import Classifier
+from .filters import filter_appeals
 from .forms import AppealCreateForm, AppealEditForm
 from .models import Appeal, Reason
 from .roles import author_for
@@ -28,14 +29,17 @@ WORD_RE = re.compile(r"[А-Яа-яЁёA-Za-z0-9]+")
 @permission_required("appeals.view_appeal", raise_exception=True)
 def appeal_list(request):
     order = request.GET.get("order", "new")
+    if order not in ORDERINGS:
+        order = "new"
+    appeals, form = filter_appeals(request.GET)
     appeals = (
-        Appeal.objects.select_related("category", "reason")
+        appeals.select_related("category", "reason")
         .prefetch_related("tags")
         .defer("text_norm", "category_matches", "author_name", "author_email")
-        .order_by(*ORDERINGS.get(order, ORDERINGS["new"]))
+        .order_by(*ORDERINGS[order])
     )
     page = Paginator(appeals, PAGE_SIZE).get_page(request.GET.get("page"))
-    return render(request, "appeals/list.html", {"page": page, "order": order if order in ORDERINGS else "new"})
+    return render(request, "appeals/list.html", {"page": page, "order": order, "form": form})
 
 
 def highlight(text, stems):
