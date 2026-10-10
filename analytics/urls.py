@@ -11,4 +11,6 @@ urlpatterns = [
     path("dashboard/", views.dashboard, name="dashboard"),
     path("reports/", views.reports, name="reports"),
     path("alerts/", views.alerts, name="alerts"),
+    path("alerts/read/", views.alerts_read, name="alerts_read_all"),
+    path("alerts/<int:pk>/read/", views.alerts_read, name="alerts_read"),
 ]

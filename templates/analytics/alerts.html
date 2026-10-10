@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Уведомления{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Уведомления о резком росте</h1>
+  <div class="actions">
+    {% if unread_only %}
+      <a class="btn btn-small" href="{% url 'analytics:alerts' %}">Показать все</a>
+    {% else %}
+      <a class="btn btn-small" href="?unread=1">Только непрочитанные</a>
+    {% endif %}
+    {% if unread_alerts %}
+      <form method="post" action="{% url 'analytics:alerts_read_all' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-small">Отметить все прочитанными</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<p class="muted">
+  Всплеск: за день обращений не меньше чем вдвое больше обычного уровня, превышение не меньше 8 для категории
+  и 5 для причины, и рост выходит за обычные колебания. Обычный уровень: медиана за 28 предыдущих дней
+  с поправкой на день недели. Проверка идёт после каждого нового обращения и командой check_spikes.
+</p>
+
+{% if page.object_list %}
+<div class="table-wrap">
+  <table class="data">
+    <thead>
+      <tr>
+        <th>День</th>
+        <th>Категория и причина</th>
+        <th class="num">Обращений</th>
+        <th class="num">Обычно</th>
+        <th class="num">Рост</th>
+        <th>Обновлено</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for alert in page.object_list %}
+      <tr>
+        <td class="nowrap">{{ alert.day|date:"d.m.Y" }}</td>
+        <td>
+          <a href="{% url 'appeals:list' %}?category={{ alert.category.slug }}{% if alert.reason_id %}&reason={{ alert.reason_id }}{% endif %}&date_from={{ alert.day|date:'Y-m-d' }}&date_to={{ alert.day|date:'Y-m-d' }}">
+            {{ alert.category.name }}{% if alert.reason %}: {{ alert.reason.name }}{% endif %}
+          </a>
+          <div class="muted">{% if alert.reason %}по причине{% else %}по всей категории{% endif %}</div>
+        </td>
+        <td class="num">{{ alert.count }}</td>
+        <td class="num">{{ alert.baseline|floatformat:1 }}</td>
+        <td class="num up">в {{ alert.ratio|floatformat:1 }} раза</td>
+        <td class="nowrap muted">{{ alert.updated_at|date:"d.m.Y H:i" }}</td>
+        <td class="nowrap">
+          {% if alert.pk in read_ids %}
+            <span class="muted">прочитано</span>
+          {% else %}
+            <form method="post" action="{% url 'analytics:alerts_read' alert.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <span class="badge badge-new">новое</span>
+              <button type="submit" class="btn btn-small">Прочитано</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if page.has_other_pages %}
+<nav class="pager">
+  {% if page.has_previous %}<a class="btn btn-small" href="{% querystring page=page.previous_page_number %}">Назад</a>{% endif %}
+  <span class="current">Страница {{ page.number }} из {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a class="btn btn-small" href="{% querystring page=page.next_page_number %}">Дальше</a>{% endif %}
+</nav>
+{% endif %}
+{% else %}
+<div class="empty">{% if unread_only %}Непрочитанных уведомлений нет.{% else %}Уведомлений пока нет.{% endif %}</div>
+{% endif %}
+{% endblock %}

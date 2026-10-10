@@ -22,7 +22,7 @@
         <a href="{% url 'analytics:compare' %}"{% if current == 'analytics:compare' %} class="active"{% endif %}>Сравнение</a>
         <a href="{% url 'analytics:dashboard' %}"{% if current == 'analytics:dashboard' %} class="active"{% endif %}>Дашборд</a>
         <a href="{% url 'analytics:reports' %}"{% if current == 'analytics:reports' %} class="active"{% endif %}>Отчёты</a>
-        <a href="{% url 'analytics:alerts' %}"{% if current == 'analytics:alerts' %} class="active"{% endif %}>Уведомления</a>
+        <a href="{% url 'analytics:alerts' %}"{% if current == 'analytics:alerts' %} class="active"{% endif %}>Уведомления{% if unread_alerts %}<span class="counter">{{ unread_alerts }}</span>{% endif %}</a>
       {% endif %}
     </nav>
     <div class="account">

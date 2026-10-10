@@ -1,8 +1,13 @@
+from django.contrib import messages
 from django.contrib.auth.decorators import permission_required
-from django.shortcuts import render
+from django.core.paginator import Paginator
+from django.shortcuts import redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from . import stats
 from .forms import compare_form, period_form
+from .models import SpikeAlert
 
 analytics_required = permission_required("appeals.view_analytics", raise_exception=True)
 
@@ -87,4 +92,32 @@ def reports(request):
 
 @analytics_required
 def alerts(request):
-    return _placeholder(request, "Уведомления", 13)
+    queryset = SpikeAlert.objects.select_related("category", "reason")
+    unread_only = request.GET.get("unread") == "1"
+    if unread_only:
+        queryset = queryset.exclude(read_by=request.user)
+    page = Paginator(queryset, 50).get_page(request.GET.get("page"))
+    read_ids = set(
+        SpikeAlert.read_by.through.objects.filter(user=request.user).values_list("spikealert_id", flat=True)
+    )
+    return render(request, "analytics/alerts.html", {"page": page, "read_ids": read_ids, "unread_only": unread_only})
+
+
+@require_POST
+@analytics_required
+def alerts_read(request, pk=None):
+    """Отметить прочитанным одно уведомление или все сразу."""
+    alerts = SpikeAlert.objects.exclude(read_by=request.user)
+    if pk is not None:
+        alerts = alerts.filter(pk=pk)
+    links = [
+        SpikeAlert.read_by.through(spikealert_id=alert_id, user_id=request.user.pk)
+        for alert_id in alerts.values_list("pk", flat=True)
+    ]
+    SpikeAlert.read_by.through.objects.bulk_create(links, ignore_conflicts=True)
+    messages.success(request, f"Отмечено прочитанными: {len(links)}.")
+    # Возврат только на свой сайт: адрес приходит из формы.
+    next_url = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = "analytics:alerts"
+    return redirect(next_url)

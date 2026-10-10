@@ -10,6 +10,8 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST
 
+from analytics.spikes import check_appeal
+
 from .classify import Classifier
 from .filters import filter_appeals
 from .forms import AppealCreateForm, AppealEditForm
@@ -113,6 +115,8 @@ def appeal_create(request):
     if request.method == "POST" and form.is_valid():
         appeal = form.save()
         messages.success(request, f"Обращение № {appeal.pk} создано. Категория: {category_label(appeal)}.")
+        for alert in check_appeal(appeal):
+            messages.warning(request, f"Резкий рост: {alert}. Аналитикам отправлено уведомление.")
         return redirect("appeals:detail", appeal.pk)
     return render(request, "appeals/form.html", {"form": form, "title": "Новое обращение"})
 

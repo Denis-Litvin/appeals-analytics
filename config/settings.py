@@ -45,6 +45,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "analytics.context_processors.alerts",
             ],
         },
     },
@@ -93,6 +94,10 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Письма о всплесках в демо выводятся в консоль. Для настоящей почты задать EMAIL_BACKEND и SMTP-параметры.
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "appeals@example.com")
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "/"
