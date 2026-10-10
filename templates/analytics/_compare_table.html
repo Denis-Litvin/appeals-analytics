@@ -1,0 +1,34 @@
+{% load analytics_format %}
+<div class="table-wrap">
+  <table class="data">
+    <thead>
+      <tr>
+        <th>{% if by_reason %}Причина{% else %}Категория{% endif %}</th>
+        <th class="num">База</th>
+        <th class="num">В день</th>
+        <th class="num">Текущий</th>
+        <th class="num">В день</th>
+        <th class="num">Ожидалось</th>
+        <th class="num">Изменение</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr{% if row.notable %} class="notable"{% endif %}>
+        <td>
+          {{ row.name }}
+          {% if by_reason %}<div class="muted">{{ row.category }}</div>{% endif %}
+        </td>
+        <td class="num">{{ row.base_count }}</td>
+        <td class="num">{{ row.base_per_day|floatformat:1 }}</td>
+        <td class="num">{{ row.current_count }}</td>
+        <td class="num">{{ row.current_per_day|floatformat:1 }}</td>
+        <td class="num">{{ row.expected|floatformat:0 }}</td>
+        <td class="num {% if row.change is None or row.change > 0 %}up{% elif row.change < 0 %}down{% endif %}">
+          {% if row.change is None %}новое{% else %}{{ row.change|signed_percent }}{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

@@ -176,3 +176,64 @@ def problems(current, previous):
             }
         )
     return sorted(rows, key=lambda r: (r["rank"], r["name"]))
+
+
+# Изменение считается заметным, если доля изменилась не меньше чем на 20%
+# и разница с ожидаемым числом не меньше 10 обращений: на малых числах 1 и 2 это ещё не рост вдвое.
+NOTABLE_SHARE = 0.2
+NOTABLE_COUNT = 10
+
+
+def compare(base, current, base_days, current_days, by="category"):
+    """Сравнение двух периодов (Д6) по категориям или причинам.
+
+    Периоды могут быть разной длины, поэтому изменение считается по числу обращений в день.
+    expected: сколько обращений было бы в текущем периоде при дневном уровне базового.
+    """
+
+    def counts(df):
+        if by == "category":
+            return df["category"].fillna(NO_CATEGORY).value_counts()
+        known = df.dropna(subset=["reason_id"])
+        return known.groupby("reason").size()
+
+    before, now = counts(base), counts(current)
+    categories = {}
+    if by == "reason":
+        for df in (base, current):
+            categories.update(df.dropna(subset=["reason_id"]).drop_duplicates("reason").set_index("reason")["category"])
+
+    rows = []
+    for name in before.index.union(now.index):
+        base_count, current_count = int(before.get(name, 0)), int(now.get(name, 0))
+        base_rate, current_rate = base_count / base_days, current_count / current_days
+        expected = base_rate * current_days
+        change = current_rate / base_rate - 1 if base_rate else None
+        if change is None:
+            notable = current_count >= NOTABLE_COUNT
+        else:
+            notable = abs(change) >= NOTABLE_SHARE and abs(current_count - expected) >= NOTABLE_COUNT
+        rows.append(
+            {
+                "name": name,
+                "category": categories.get(name, ""),
+                "base_count": base_count,
+                "current_count": current_count,
+                "base_per_day": round(base_rate, 2),
+                "current_per_day": round(current_rate, 2),
+                "expected": round(expected, 1),
+                "change": change,
+                "notable": notable,
+            }
+        )
+    rows.sort(key=lambda r: (-r["current_count"], -r["base_count"], r["name"]))
+    total_base, total_current = len(base), len(current)
+    base_rate, current_rate = total_base / base_days, total_current / current_days
+    totals = {
+        "base_count": total_base,
+        "current_count": total_current,
+        "base_per_day": round(base_rate, 2),
+        "current_per_day": round(current_rate, 2),
+        "change": current_rate / base_rate - 1 if base_rate else None,
+    }
+    return rows, totals

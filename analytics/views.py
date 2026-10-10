@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import permission_required
 from django.shortcuts import render
 
 from . import stats
-from .forms import period_form
+from .forms import compare_form, period_form
 
 analytics_required = permission_required("appeals.view_analytics", raise_exception=True)
 
@@ -50,7 +50,29 @@ def problems(request):
 
 @analytics_required
 def compare(request):
-    return _placeholder(request, "Сравнение периодов", 12)
+    form = compare_form(request.GET)
+    (base_from, base_to), (current_from, current_to) = form.base, form.current
+    base_days = (base_to - base_from).days + 1
+    current_days = (current_to - current_from).days + 1
+    base = stats.load_frame(form.appeals(base_from, base_to))
+    current = stats.load_frame(form.appeals(current_from, current_to))
+    categories, totals = stats.compare(base, current, base_days, current_days, by="category")
+    reasons, _ = stats.compare(base, current, base_days, current_days, by="reason")
+    context = {
+        "form": form,
+        "base_from": base_from,
+        "base_to": base_to,
+        "current_from": current_from,
+        "current_to": current_to,
+        "base_days": base_days,
+        "current_days": current_days,
+        "totals": totals,
+        "categories": categories,
+        "reasons": reasons,
+        "notable_share": stats.NOTABLE_SHARE,
+        "notable_count": stats.NOTABLE_COUNT,
+    }
+    return render(request, "analytics/compare.html", context)
 
 
 @analytics_required

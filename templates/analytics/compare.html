@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load analytics_format %}
+
+{% block title %}Сравнение периодов{% endblock %}
+
+{% block head %}
+<style>
+  tr.notable td { font-weight: 600; }
+  tr.notable td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Сравнение периодов</h1>
+  <span class="muted">
+    {{ base_from|date:"d.m.Y" }} - {{ base_to|date:"d.m.Y" }} ({{ base_days }} дн.) и
+    {{ current_from|date:"d.m.Y" }} - {{ current_to|date:"d.m.Y" }} ({{ current_days }} дн.)
+  </span>
+</div>
+
+<form method="get" class="panel" id="compare-form">
+  <div class="filters">
+    <div class="field">
+      <label for="{{ form.preset.id_for_label }}">{{ form.preset.label }}</label>
+      {{ form.preset }}
+    </div>
+    <div class="field">
+      <label for="id_base_from">Базовый период с</label>
+      <input type="date" name="base_from" id="id_base_from" value="{{ base_from|date:'Y-m-d' }}">
+    </div>
+    <div class="field">
+      <label for="id_base_to">по</label>
+      <input type="date" name="base_to" id="id_base_to" value="{{ base_to|date:'Y-m-d' }}">
+    </div>
+    <div class="field">
+      <label for="id_current_from">Текущий период с</label>
+      <input type="date" name="current_from" id="id_current_from" value="{{ current_from|date:'Y-m-d' }}">
+    </div>
+    <div class="field">
+      <label for="id_current_to">по</label>
+      <input type="date" name="current_to" id="id_current_to" value="{{ current_to|date:'Y-m-d' }}">
+    </div>
+    <div class="field">
+      <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+      {{ form.category }}
+    </div>
+    <div class="field">
+      <label for="{{ form.channel.id_for_label }}">{{ form.channel.label }}</label>
+      {{ form.channel }}
+    </div>
+    <div class="buttons">
+      <button type="submit" class="btn btn-primary">Сравнить</button>
+      <a class="btn" href="{{ request.path }}">Сбросить</a>
+    </div>
+  </div>
+  {% if form.errors %}
+    <div class="notice notice-error" style="margin: .75rem 0 0">
+      {% for error in form.preset.errors %}{{ error }} {% endfor %}Показано сравнение недели к неделе.
+    </div>
+  {% endif %}
+</form>
+
+<div class="grid grid-3" style="margin-bottom: 1rem">
+  <div class="tile">
+    <div class="label">Базовый период</div>
+    <div class="value">{{ totals.base_count }}</div>
+    <div class="delta muted">{{ totals.base_per_day|floatformat:1 }} в день</div>
+  </div>
+  <div class="tile">
+    <div class="label">Текущий период</div>
+    <div class="value">{{ totals.current_count }}</div>
+    <div class="delta muted">{{ totals.current_per_day|floatformat:1 }} в день</div>
+  </div>
+  <div class="tile">
+    <div class="label">Изменение в день</div>
+    <div class="value {% if totals.change > 0 %}up{% elif totals.change < 0 %}down{% endif %}">
+      {% if totals.change is None %}нет базы{% else %}{{ totals.change|signed_percent }}{% endif %}
+    </div>
+    <div class="delta muted">периоды разной длины сравниваются по числу в день</div>
+  </div>
+</div>
+
+{% if totals.base_count or totals.current_count %}
+<div class="panel">
+  <h2>Категории</h2>
+  {% include "analytics/_compare_table.html" with rows=categories by_reason=False %}
+</div>
+<div class="panel">
+  <h2>Причины</h2>
+  {% include "analytics/_compare_table.html" with rows=reasons by_reason=True %}
+</div>
+<p class="muted">
+  Выделены заметные изменения: число в день изменилось не меньше чем на {{ notable_share|percent:0 }}
+  и разница с ожидаемым числом не меньше {{ notable_count }} обращений. Ожидаемое число: сколько было бы
+  в текущем периоде при дневном уровне базового.
+</p>
+{% else %}
+<div class="empty">В обоих периодах нет обращений.</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Если дату поменяли руками, сравнение становится произвольным.
+  (function () {
+    var preset = document.getElementById("id_preset");
+    ["id_base_from", "id_base_to", "id_current_from", "id_current_to"].forEach(function (id) {
+      document.getElementById(id).addEventListener("change", function () { preset.value = "custom"; });
+    });
+  })();
+</script>
+{% endblock %}
