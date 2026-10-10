@@ -48,7 +48,7 @@
 | А4 | Реализация поиска и фильтрации | сделано | appeals/filters.py |
 | А5 | Реализация аналитических функций | сделано | analytics/stats.py, spikes.py, reports.py, export.py |
 | А6 | Разработка визуализации | сделано | analytics/charts.py, static/js/charts.js |
-| А7 | Тестирование | сделано | 286 тестов, покрытие 99%, docs/testing.md |
+| А7 | Тестирование | сделано | 287 тестов, покрытие 99%, docs/testing.md |
 | А8 | Подготовка документации | сделано | README.md, docs/ |
 
 ## Результат
@@ -67,7 +67,7 @@
 | Python | 3.13 и 3.11, на обоих версиях установка и тесты проходят |
 | `pip install -r requirements.txt` | Django 5.2.18, djangorestframework 3.18.3, pandas 3.0.6, plotly 6.9.0, openpyxl 3.1.5, snowballstemmer 3.1.1; numpy 2.5.3 на Python 3.13 и 2.4.6 на 3.11 |
 | `python manage.py setup_demo` | 6000 обращений, около 20 уведомлений о росте, 6-7 с |
-| `python manage.py test` | 286 тестов, OK, около 40 с |
+| `python manage.py test` | 287 тестов, OK, около 40 с |
 | Вход под демо-учётками и обход страниц в браузере | operator: обращения 200, аналитика 403; analyst: создание и правка 403, аналитика 200; admin: всё 200, админка открыта только ему; ошибок JavaScript нет, графики нарисованы |
 | API | без токена 401; operator: /api/summary/ 403, /api/appeals/ 200; analyst и admin: оба адреса 200 |
 | Работа без сети | браузеру запрещены все адреса, кроме сервиса: графики на пяти страницах рисуются, внешних запросов нет |

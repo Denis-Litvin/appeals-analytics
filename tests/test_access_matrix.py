@@ -130,3 +130,8 @@ class AccessMatrixTests(TestCase):
                 if role != "anonymous":
                     self.client.force_login(User.objects.get(username=role))
                 self.assertEqual(self.client.get(reverse("admin:index")).status_code, expected)
+
+    def test_favicon_open_for_everyone(self):
+        response = self.client.get("/favicon.ico")
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response["Location"], "/static/favicon.svg")

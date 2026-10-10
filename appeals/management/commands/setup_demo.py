@@ -43,7 +43,7 @@ class Command(BaseCommand):
         first = Appeal.objects.order_by("created_at").values_list("created_at", flat=True).first()
         if first:
             found = check(timezone.localtime(first).date(), timezone.localdate())
-            self.stdout.write(f"Найдено всплесков: {len(found)} новых, всего уведомлений {SpikeAlert.objects.count()}")
+            self.stdout.write(f"Новых уведомлений о росте: {len(found)}, всего уведомлений: {SpikeAlert.objects.count()}")
 
         logins = ", ".join(username for username, *_ in DEMO_USERS)
         self.stdout.write(f"Готово за {time.perf_counter() - started:.1f} с. Вход: {logins}, пароль {DEMO_PASSWORD}")
