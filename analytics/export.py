@@ -188,6 +188,9 @@ def write_sheet(sheet, headers, rows, title_rows=()):
     for cell in sheet[header_row]:
         cell.font = Font(bold=True)
     widths = [len(str(h)) for h in headers]
+    for line in title_rows:
+        for column, value in enumerate(line[: len(widths)]):
+            widths[column] = max(widths[column], len(str(value)))
     # Номер строки считается вручную: sheet.max_row перебирает все ячейки и на тысячах строк тормозит.
     for row_number, values in enumerate(rows, start=header_row + 1):
         sheet.append([xlsx_value(v) for v in values])
@@ -197,7 +200,8 @@ def write_sheet(sheet, headers, rows, title_rows=()):
                 sheet.cell(row=row_number, column=column).number_format = fmt
             widths[column - 1] = max(widths[column - 1], len(str(csv_value(value))))
     for column, width in enumerate(widths, start=1):
-        sheet.column_dimensions[get_column_letter(column)].width = min(width + 2, MAX_WIDTH)
+        # Ширина в Excel меряется в символах латиницы, кириллица и жирный заголовок шире примерно на пятую часть.
+        sheet.column_dimensions[get_column_letter(column)].width = min(round(width * 1.2) + 2, MAX_WIDTH)
     sheet.freeze_panes = sheet.cell(row=header_row + 1, column=1)
 
 

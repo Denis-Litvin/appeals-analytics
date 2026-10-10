@@ -34,7 +34,7 @@
 <p class="muted no-print">
   Разделы в CSV:
   {% for key, title in export_sections.items %}<a href="{% url 'analytics:report_export' %}{% querystring format='csv' section=key %}">{{ title|lower }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.
-  Файл CSV открывается в Excel без настройки: кодировка UTF-8, разделитель «;».
+  CSV в кодировке UTF-8 с разделителем «;», как его ждёт Excel с русскими настройками.
 </p>
 {% endif %}
 

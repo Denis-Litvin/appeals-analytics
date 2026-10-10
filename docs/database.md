@@ -4,16 +4,18 @@
 
 Своих таблиц шесть: пять в приложении `appeals` и одна в `analytics`. Пользователи, группы и права берутся из стандартных таблиц `auth_*`, токены API хранятся в таблице `authtoken_token` приложения Django REST framework.
 
+Связь «ноль или один» (`|o`) означает необязательную ссылку: у обращения может не быть категории, причины и исполнителя, у уведомления по категории нет причины.
+
 ```mermaid
 erDiagram
     Category ||--o{ Reason : "reasons"
     Reason ||--o{ KeywordRule : "rules"
-    Category ||--o{ Appeal : "appeals"
-    Reason ||--o{ Appeal : "appeals"
+    Category |o--o{ Appeal : "appeals"
+    Reason |o--o{ Appeal : "appeals"
     Appeal }o--o{ Tag : "tags"
-    User ||--o{ Appeal : "assignee"
+    User |o--o{ Appeal : "assignee"
     Category ||--o{ SpikeAlert : "spike_alerts"
-    Reason ||--o{ SpikeAlert : "spike_alerts"
+    Reason |o--o{ SpikeAlert : "spike_alerts"
     SpikeAlert }o--o{ User : "read_by"
 ```
 
@@ -75,7 +77,7 @@ erDiagram
 | author_name, author_email | varchar | Автор. Аналитик видит их замаскированными (Д10) |
 | subject | varchar(200) | Тема, может быть пустой: в чате и приложении её обычно нет |
 | text | text | Текст обращения |
-| text_norm | text | Основы слов через пробел. Заполняется при сохранении с шага 5, по нему работает текстовый поиск (Д2) |
+| text_norm | text | Основы слов через пробел. Заполняется при сохранении, по нему работает текстовый поиск (Д2) |
 | status | varchar(10) | `new` новое, `in_work` в работе, `resolved` решено, `closed` закрыто без решения (дубль, спам, клиент не ответил) |
 | category_id | FK на category, null, PROTECT | Категория, пусто если не определена |
 | reason_id | FK на reason, null, PROTECT | Причина |

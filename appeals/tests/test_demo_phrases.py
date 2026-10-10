@@ -92,7 +92,7 @@ class BankClassificationTests(TestCase):
         self.assertEqual(with_category, [])
 
     def test_bank_is_mostly_recognized(self):
-        # Предварительная оценка для шага 7: без опечаток генератора.
+        # Банк без опечаток генератора: классификатор должен узнавать большую часть формулировок.
         pairs = [(t, self.reason_category[r]) for r, items in dp.REASON_TEXTS.items() for t in items]
         correct = sum(self.category_of(t) == cid for t, cid in pairs)
         self.assertGreaterEqual(correct / len(pairs), 0.85, f"верно {correct} из {len(pairs)}")

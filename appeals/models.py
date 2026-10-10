@@ -104,7 +104,7 @@ class Appeal(models.Model):
     author_email = models.EmailField("email автора", blank=True)
     subject = models.CharField("тема", max_length=200, blank=True)
     text = models.TextField("текст")
-    # Основы слов через пробел, заполняется при сохранении (шаг 5), по нему идёт поиск.
+    # Основы слов через пробел, заполняется при сохранении, по нему идёт поиск.
     text_norm = models.TextField("нормализованный текст", blank=True, editable=False)
 
     status = models.CharField("статус", max_length=10, choices=Status.choices, default=Status.NEW)
@@ -152,7 +152,6 @@ class Appeal(models.Model):
             models.Index(fields=["channel"], name="appeal_channel_idx"),
         ]
         constraints = [
-            # Причина без категории не имеет смысла.
             models.CheckConstraint(
                 condition=Q(reason__isnull=True) | Q(category__isnull=False),
                 name="appeal_reason_needs_category",
