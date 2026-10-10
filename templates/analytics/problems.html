@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load analytics_format %}
+
+{% block title %}Рейтинг проблем{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Рейтинг проблем</h1>
+  <span class="muted">
+    {{ start|date:"d.m.Y" }} - {{ end|date:"d.m.Y" }}, сравнение с {{ prev_start|date:"d.m.Y" }} - {{ prev_end|date:"d.m.Y" }}
+  </span>
+</div>
+
+{% include "analytics/_period_form.html" %}
+
+{% if rows %}
+<div class="table-wrap">
+  <table class="data">
+    <thead>
+      <tr>
+        <th class="num">Место</th>
+        <th>Изменение места</th>
+        <th>Причина</th>
+        <th class="num">Обращений</th>
+        <th class="num">Доля</th>
+        <th class="num">Было</th>
+        <th class="num">Прирост</th>
+        <th class="num">Нерешённых</th>
+        <th class="num">Медиана решения</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td class="num">{{ row.rank }}</td>
+        <td class="nowrap">
+          {% if row.rank_change is None %}
+            <span class="badge badge-new">новая</span>
+          {% elif row.rank_change > 0 %}
+            <span class="up">↑ {{ row.rank_change }}</span>
+          {% elif row.rank_change < 0 %}
+            <span class="down">↓ {{ row.rank_change|stringformat:"d"|slice:"1:" }}</span>
+          {% else %}
+            <span class="muted">без изменений</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'appeals:list' %}?reason={{ row.reason_id }}&date_from={{ start|date:'Y-m-d' }}&date_to={{ end|date:'Y-m-d' }}">{{ row.name }}</a>
+          <div class="muted">{{ row.category }}</div>
+        </td>
+        <td class="num">{{ row.count }}</td>
+        <td class="num">{{ row.share|percent }}</td>
+        <td class="num">{{ row.prev_count }}</td>
+        <td class="num {% if row.growth is None or row.growth > 0 %}up{% elif row.growth < 0 %}down{% endif %}">{{ row.growth|signed_percent }}</td>
+        <td class="num">{{ row.open_share|percent:0 }}</td>
+        <td class="num">{{ row.median_resolution_hours|hours }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="muted">
+  Место считается по числу обращений за период, при равенстве у причин одно место. Рост числа обращений
+  и подъём в рейтинге выделены красным: проблема стала встречаться чаще.
+</p>
+{% else %}
+<div class="empty">Нет обращений с определённой причиной за период.</div>
+{% endif %}
+{% endblock %}
